@@ -406,59 +406,331 @@
     });
   }
 
+  // Articulated 3D Princess Riding a Majestic Golden Lion
   function buildPlayerMesh() {
     const g = new THREE.Group();
-    const cloak = new THREE.Mesh(
-      new THREE.ConeGeometry(0.52, 1.25, 14),
-      new THREE.MeshStandardMaterial({ color: PALETTE.mayCloth, roughness: 0.78 })
-    );
-    cloak.position.y = 0.65;
-    cloak.castShadow = true;
-    g.add(cloak);
+    const mountRoot = new THREE.Group();
+    g.add(mountRoot);
 
-    const sash = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.38, 0.42, 0.18, 12),
-      new THREE.MeshStandardMaterial({ color: PALETTE.charmRed, roughness: 0.6 })
-    );
-    sash.position.y = 0.72;
-    g.add(sash);
+    const lionFurMat = new THREE.MeshStandardMaterial({
+      color: 0xe6a129,
+      emissive: 0x3b2204,
+      emissiveIntensity: 0.35,
+      roughness: 0.62,
+      metalness: 0.12,
+    });
+    const lionBellyMat = new THREE.MeshStandardMaterial({
+      color: 0xf7d07a,
+      roughness: 0.68,
+    });
+    const maneMat = new THREE.MeshStandardMaterial({
+      color: 0x8a3e0d,
+      emissive: 0x2a1002,
+      emissiveIntensity: 0.3,
+      roughness: 0.78,
+    });
+    const maneInnerMat = new THREE.MeshStandardMaterial({
+      color: 0xb45309,
+      roughness: 0.72,
+    });
+    const goldArmorMat = new THREE.MeshStandardMaterial({
+      color: 0xfacc15,
+      emissive: 0x78350f,
+      emissiveIntensity: 0.45,
+      metalness: 0.75,
+      roughness: 0.22,
+    });
+    const saddleMat = new THREE.MeshStandardMaterial({
+      color: 0xbe123c,
+      roughness: 0.55,
+    });
 
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.29, 14, 14),
-      new THREE.MeshStandardMaterial({ color: PALETTE.safeZone, roughness: 0.65 })
-    );
-    head.position.y = 1.45;
-    head.castShadow = true;
-    g.add(head);
+    // 1. Lion Muscular Torso, Chest & Haunches (oriented along +Z forward)
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.38, 1.35, 16), lionFurMat);
+    torso.rotation.x = Math.PI / 2;
+    torso.position.set(0, 0.78, -0.05);
+    torso.castShadow = true;
+    mountRoot.add(torso);
 
-    const hat = new THREE.Mesh(
-      new THREE.ConeGeometry(0.74, 0.45, 20),
-      new THREE.MeshStandardMaterial({ color: PALETTE.mayCloth, roughness: 0.82 })
-    );
-    hat.position.y = 1.78;
-    hat.castShadow = true;
-    g.add(hat);
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.47, 16, 16), lionFurMat);
+    chest.scale.set(0.96, 1.05, 1.12);
+    chest.position.set(0, 0.84, 0.52);
+    chest.castShadow = true;
+    mountRoot.add(chest);
 
-    const miniPivot = new THREE.Group();
-    miniPivot.position.set(0.56, 1.56, 0.18);
-    const miniOrb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.13, 10, 10),
+    const haunches = new THREE.Mesh(new THREE.SphereGeometry(0.43, 16, 16), lionFurMat);
+    haunches.scale.set(0.95, 1.02, 1.08);
+    haunches.position.set(0, 0.82, -0.62);
+    haunches.castShadow = true;
+    mountRoot.add(haunches);
+
+    // Royal Saddle & Golden Trim
+    const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.16, 0.78), saddleMat);
+    saddle.position.set(0, 1.16, -0.04);
+    saddle.castShadow = true;
+    mountRoot.add(saddle);
+
+    const saddleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.08, 0.84), goldArmorMat);
+    saddleTrim.position.set(0, 1.13, -0.04);
+    mountRoot.add(saddleTrim);
+
+    // 2. Multi-layered Royal Lion Mane & Sculpted Head
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.16, 0.78);
+    mountRoot.add(headGroup);
+
+    const maneOuter = new THREE.Mesh(new THREE.DodecahedronGeometry(0.62, 1), maneMat);
+    maneOuter.scale.set(1.08, 1.15, 0.82);
+    maneOuter.position.set(0, 0.02, -0.08);
+    maneOuter.castShadow = true;
+    headGroup.add(maneOuter);
+
+    const maneFront = new THREE.Mesh(new THREE.DodecahedronGeometry(0.54, 1), maneInnerMat);
+    maneFront.scale.set(1.0, 1.06, 0.75);
+    maneFront.position.set(0, 0.04, 0.04);
+    headGroup.add(maneFront);
+
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 16), lionFurMat);
+    skull.scale.set(0.95, 0.92, 1.05);
+    skull.position.set(0, 0.08, 0.22);
+    headGroup.add(skull);
+
+    const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.36), lionBellyMat);
+    muzzle.position.set(0, -0.02, 0.48);
+    headGroup.add(muzzle);
+
+    const nose = new THREE.Mesh(
+      new THREE.ConeGeometry(0.08, 0.08, 4),
+      new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.4 })
+    );
+    nose.rotation.x = Math.PI / 2;
+    nose.position.set(0, 0.06, 0.67);
+    headGroup.add(nose);
+
+    // White fangs
+    const fangMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (const sx of [-0.11, 0.11]) {
+      const fang = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.11, 6), fangMat);
+      fang.rotation.x = Math.PI;
+      fang.position.set(sx, -0.14, 0.56);
+      headGroup.add(fang);
+    }
+
+    // Glowing amber-gold lion eyes
+    const lionEyeMat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
+    for (const sx of [-0.15, 0.15]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 10), lionEyeMat);
+      eye.position.set(sx, 0.14, 0.49);
+      headGroup.add(eye);
+    }
+
+    // Lion ears
+    for (const sx of [-0.28, 0.28]) {
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), lionFurMat);
+      ear.scale.set(0.8, 1.1, 0.5);
+      ear.position.set(sx, 0.38, 0.14);
+      headGroup.add(ear);
+    }
+
+    // Golden Crown Crest on Lion Forehead
+    const lionCrest = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), goldArmorMat);
+    lionCrest.position.set(0, 0.27, 0.46);
+    headGroup.add(lionCrest);
+
+    // 3. Articulated 4 Lion Legs (Front-Left, Front-Right, Back-Left, Back-Right)
+    function makeLionLeg(x, z) {
+      const pivot = new THREE.Group();
+      pivot.position.set(x, 0.72, z);
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.46, 12), lionFurMat);
+      upper.position.y = -0.22;
+      upper.castShadow = true;
+      pivot.add(upper);
+
+      const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.095, 0.38, 12), lionFurMat);
+      lower.position.set(0, -0.52, 0.03);
+      lower.castShadow = true;
+      pivot.add(lower);
+
+      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), lionBellyMat);
+      paw.scale.set(1.0, 0.62, 1.35);
+      paw.position.set(0, -0.68, 0.08);
+      pivot.add(paw);
+      mountRoot.add(pivot);
+      return pivot;
+    }
+
+    const legFL = makeLionLeg(0.28, 0.48);
+    const legFR = makeLionLeg(-0.28, 0.48);
+    const legBL = makeLionLeg(0.27, -0.58);
+    const legBR = makeLionLeg(-0.27, -0.58);
+
+    // 4. Articulated Lion Tail with Tuft
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.92, -0.96);
+    const tailStem = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.85, 8), lionFurMat);
+    tailStem.rotation.x = -0.65;
+    tailStem.position.set(0, 0.15, -0.35);
+    tailPivot.add(tailStem);
+    const tailTuft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), maneMat);
+    tailTuft.scale.set(0.9, 0.9, 1.4);
+    tailTuft.position.set(0, 0.36, -0.72);
+    tailPivot.add(tailTuft);
+    mountRoot.add(tailPivot);
+
+    // 5. Princess Rider Seated on the Golden Lion
+    const princessGroup = new THREE.Group();
+    princessGroup.position.set(0, 1.22, -0.02);
+    mountRoot.add(princessGroup);
+
+    const gownMat = new THREE.MeshStandardMaterial({
+      color: 0xfff1f2,
+      emissive: 0x4c0519,
+      emissiveIntensity: 0.22,
+      roughness: 0.45,
+    });
+    const roseSilkMat = new THREE.MeshStandardMaterial({
+      color: 0xf43f5e,
+      emissive: 0x881337,
+      emissiveIntensity: 0.3,
+      roughness: 0.4,
+    });
+    const skinMat = new THREE.MeshStandardMaterial({
+      color: 0xffe4d6,
+      roughness: 0.55,
+    });
+    const hairMat = new THREE.MeshStandardMaterial({
+      color: 0x2e1911,
+      roughness: 0.65,
+    });
+
+    // Royal Gown Skirt draped gracefully over the saddle
+    const skirt = new THREE.Mesh(new THREE.ConeGeometry(0.46, 0.68, 16), gownMat);
+    skirt.position.set(0, 0.24, 0);
+    skirt.castShadow = true;
+    princessGroup.add(skirt);
+
+    const overskirt = new THREE.Mesh(new THREE.ConeGeometry(0.49, 0.42, 16), roseSilkMat);
+    overskirt.position.set(0, 0.34, -0.02);
+    princessGroup.add(overskirt);
+
+    // Princess Bodice & Golden Belt
+    const bodice = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.48, 14), roseSilkMat);
+    bodice.position.set(0, 0.68, 0.02);
+    bodice.castShadow = true;
+    princessGroup.add(bodice);
+
+    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.035, 8, 20), goldArmorMat);
+    belt.rotation.x = Math.PI / 2;
+    belt.position.set(0, 0.48, 0.02);
+    princessGroup.add(belt);
+
+    // Flowing Royal Silk Cape behind Princess
+    const capePivot = new THREE.Group();
+    capePivot.position.set(0, 0.88, -0.14);
+    const capeMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.56, 0.92, 0.04),
       new THREE.MeshStandardMaterial({
-        color: PALETTE.moteLight,
-        emissive: PALETTE.lanternLit,
-        emissiveIntensity: 2.0,
+        color: 0xfb7185,
+        emissive: 0x881337,
+        emissiveIntensity: 0.35,
+        roughness: 0.4,
       })
     );
-    miniOrb.position.y = -0.22;
+    capeMesh.position.set(0, -0.42, -0.16);
+    capeMesh.rotation.x = 0.38;
+    capePivot.add(capeMesh);
+    princessGroup.add(capePivot);
+
+    // Princess Head, Eyes, Flowing Hair & 5-Point Golden Crown
+    const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat);
+    pHead.position.set(0, 1.08, 0.05);
+    pHead.castShadow = true;
+    princessGroup.add(pHead);
+
+    const pEyeMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+    for (const sx of [-0.075, 0.075]) {
+      const pe = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 8), pEyeMat);
+      pe.position.set(sx, 1.1, 0.25);
+      princessGroup.add(pe);
+    }
+
+    // Long flowing hair
+    const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.235, 14, 14), hairMat);
+    hairCap.position.set(0, 1.12, -0.01);
+    princessGroup.add(hairCap);
+
+    const hairBack = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.72, 12), hairMat);
+    hairBack.rotation.x = 0.25;
+    hairBack.position.set(0, 0.82, -0.16);
+    princessGroup.add(hairBack);
+
+    // Golden Crown / Tiara with Glowing Ruby Gem
+    const crownGroup = new THREE.Group();
+    crownGroup.position.set(0, 1.28, 0.04);
+    const crownBand = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.16, 0.1, 16), goldArmorMat);
+    crownGroup.add(crownBand);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.13, 6), goldArmorMat);
+      spike.position.set(Math.sin(a) * 0.15, 0.1, Math.cos(a) * 0.15);
+      crownGroup.add(spike);
+    }
+    const crownGem = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.055, 0),
+      new THREE.MeshStandardMaterial({ color: 0xff2a85, emissive: 0xff2a85, emissiveIntensity: 1.8 })
+    );
+    crownGem.position.set(0, 0.08, 0.17);
+    crownGroup.add(crownGem);
+    princessGroup.add(crownGroup);
+
+    // Princess Arms & Golden Reins
+    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.048, 0.44, 10), skinMat);
+    armL.position.set(-0.24, 0.72, 0.2);
+    armL.rotation.x = 0.85;
+    princessGroup.add(armL);
+
+    const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.048, 0.44, 10), skinMat);
+    armR.position.set(0.26, 0.78, 0.22);
+    armR.rotation.x = 1.05;
+    armR.rotation.z = -0.25;
+    princessGroup.add(armR);
+
+    // Royal Crystal Lantern Scepter held in Princess's right hand
+    const miniPivot = new THREE.Group();
+    miniPivot.position.set(0.36, 0.96, 0.46);
+    const scepterStaff = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.68, 8), goldArmorMat);
+    scepterStaff.rotation.x = 0.35;
+    miniPivot.add(scepterStaff);
+
+    const miniOrb = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.16, 1),
+      new THREE.MeshStandardMaterial({
+        color: 0xfffbeb,
+        emissive: 0xfacc15,
+        emissiveIntensity: 2.4,
+      })
+    );
+    miniOrb.position.set(0, 0.28, 0.14);
     miniPivot.add(miniOrb);
 
-    const playerLight = new THREE.PointLight(PALETTE.lanternLit, 1.7, 13);
-    playerLight.position.y = -0.22;
+    const playerLight = new THREE.PointLight(0xffd166, 2.2, 16);
+    playerLight.position.set(0, 0.28, 0.14);
     miniPivot.add(playerLight);
 
-    g.add(miniPivot);
-    g.userData.miniPivot = miniPivot;
-    g.userData.playerLight = playerLight;
+    princessGroup.add(miniPivot);
+
+    g.userData = {
+      mountRoot,
+      headGroup,
+      legFL,
+      legFR,
+      legBL,
+      legBR,
+      tailPivot,
+      capePivot,
+      miniPivot,
+      playerLight,
+    };
     return g;
   }
 
@@ -551,68 +823,119 @@
     return g;
   }
 
+  // Radiant Celestial Crystal Monster (Bright, vivid, easily visible on screen)
   function buildShadeMesh() {
     const g = new THREE.Group();
+
+    // Luminous crystal outer body (bright sky-cyan / aqua glow)
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: PALETTE.shadeBody,
-      emissive: 0x1a0e2e,
-      emissiveIntensity: 0.8,
-      roughness: 0.6,
+      color: 0x7dd3fc,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 1.35,
+      roughness: 0.2,
+      metalness: 0.15,
+      transparent: true,
+      opacity: 0.92,
     });
-    const body = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.5, 12), bodyMat);
-    body.position.y = 0.75;
+    const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.62, 1), bodyMat);
+    body.scale.set(0.95, 1.35, 0.95);
+    body.position.y = 0.95;
     body.castShadow = true;
     g.add(body);
 
-    const eyeColor = settings.colorblind ? PALETTE.shadeEyeCB : PALETTE.shadeEye;
+    // Warm golden-sun inner core shining through the crystal spirit
+    const innerCore = new THREE.Mesh(
+      new THREE.SphereGeometry(0.32, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0xfef08a })
+    );
+    innerCore.position.y = 0.95;
+    g.add(innerCore);
+
+    // Floating Golden Halo Crown above the Spirit
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.38, 0.045, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+    );
+    halo.rotation.x = Math.PI / 2;
+    halo.position.y = 1.82;
+    g.add(halo);
+
+    // Articulated Crystal Light Wings (left & right)
+    const wingMat = new THREE.MeshBasicMaterial({
+      color: 0xe0f2fe,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const wingL = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.95, 4), wingMat);
+    wingL.rotation.z = Math.PI / 2.4;
+    wingL.position.set(0.65, 1.05, -0.05);
+    g.add(wingL);
+
+    const wingR = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.95, 4), wingMat);
+    wingR.rotation.z = -Math.PI / 2.4;
+    wingR.position.set(-0.65, 1.05, -0.05);
+    g.add(wingR);
+
+    // Bright Jewel Eyes & Glowing Aura Ring
+    const eyeColor = settings.colorblind ? PALETTE.shadeEyeCB : 0xfffbeb;
     const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeMat);
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeMat);
-    eyeL.position.set(-0.16, 1.05, 0.42);
-    eyeR.position.set(0.16, 1.05, 0.42);
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 10), eyeMat);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 10), eyeMat);
+    eyeL.position.set(-0.19, 1.08, 0.52);
+    eyeR.position.set(0.19, 1.08, 0.52);
     g.add(eyeL, eyeR);
 
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.035, 8, 20), eyeMat);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.04, 8, 24), eyeMat);
     rim.rotation.x = Math.PI / 2;
-    rim.position.y = 0.25;
+    rim.position.y = 0.28;
     g.add(rim);
 
     const drainBeam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.12, 2.0, 8),
-      new THREE.MeshBasicMaterial({ color: eyeColor, transparent: true, opacity: 0.75 })
+      new THREE.CylinderGeometry(0.07, 0.14, 2.0, 8),
+      new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.88 })
     );
     drainBeam.rotation.x = Math.PI / 2;
     drainBeam.position.set(0, 1.1, 1.0);
     drainBeam.visible = false;
     g.add(drainBeam);
 
-    g.userData = { bodyMat, eyeMat, drainBeam };
+    g.userData = { bodyMat, eyeMat, drainBeam, wingL, wingR, halo };
     return g;
   }
 
+  // Radiant Golden-Silver Wind Pixie (Drifter / Gió Lạc)
   function buildDrifterMesh() {
     const g = new THREE.Group();
     const core = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.45, 1),
+      new THREE.OctahedronGeometry(0.48, 1),
       new THREE.MeshStandardMaterial({
-        color: PALETTE.drifter,
-        emissive: PALETTE.drifter,
-        emissiveIntensity: 0.9,
-        transparent: true,
-        opacity: 0.86,
+        color: 0xfef08a,
+        emissive: 0x38bdf8,
+        emissiveIntensity: 1.4,
+        roughness: 0.15,
       })
     );
-    core.position.y = 0.9;
+    core.position.y = 0.95;
     g.add(core);
 
     const swirl = new THREE.Mesh(
-      new THREE.TorusGeometry(0.62, 0.05, 8, 24),
-      new THREE.MeshBasicMaterial({ color: PALETTE.moteLight })
+      new THREE.TorusGeometry(0.68, 0.055, 8, 28),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
     );
     swirl.rotation.x = Math.PI / 2;
-    swirl.position.y = 0.9;
+    swirl.position.y = 0.95;
     g.add(swirl);
-    g.userData = { swirl };
+
+    const swirl2 = new THREE.Mesh(
+      new THREE.TorusGeometry(0.56, 0.04, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+    );
+    swirl2.rotation.y = Math.PI / 3;
+    swirl2.position.y = 0.95;
+    g.add(swirl2);
+
+    g.userData = { swirl, swirl2 };
     return g;
   }
 
@@ -2225,12 +2548,52 @@
     const lowFuelTicks = Math.round((contract.tuning.low_fuel_threshold || 30) * 60);
 
     const litCount = game.lanterns.filter((l) => l.lit).length;
-    hemiLight.intensity = 0.15 + 0.55 * (litCount / Math.max(1, game.lanterns.length));
+    hemiLight.intensity = 0.42 + 0.55 * (litCount / Math.max(1, game.lanterns.length));
+    moonLight.intensity = 0.68;
 
     playerMesh.visible = pl.fallWaitTicks === 0 && (pl.invulnTicks === 0 || Math.floor(pl.invulnTicks / 4) % 2 === 0);
     playerMesh.position.set(pl.x, pl.y, pl.z);
-    if (Math.hypot(pl.vx, pl.vz) > 0.1) {
+    const speedH = Math.hypot(pl.vx, pl.vz);
+    if (speedH > 0.1) {
       playerMesh.rotation.y = Math.atan2(pl.vx, pl.vz);
+    }
+
+    // Animate Golden Lion gallop & Princess cape/scepter
+    const pud = playerMesh.userData;
+    if (pud && pud.legFL) {
+      const moveRatio = Math.min(1.5, speedH / 6.0);
+      const stride = timeSec * 14.0;
+      if (!pl.grounded) {
+        // Jumping / mid-air bounding pose
+        pud.legFL.rotation.x = -0.65;
+        pud.legFR.rotation.x = -0.5;
+        pud.legBL.rotation.x = 0.55;
+        pud.legBR.rotation.x = 0.45;
+        pud.mountRoot.rotation.x = Math.max(-0.35, Math.min(0.35, -pl.vy * 0.03));
+        pud.mountRoot.position.y = 0.06;
+      } else if (moveRatio > 0.05) {
+        // Galloping gait
+        const swing = 0.62 * moveRatio;
+        pud.legFL.rotation.x = Math.sin(stride) * swing;
+        pud.legFR.rotation.x = Math.sin(stride + 0.9) * swing;
+        pud.legBL.rotation.x = Math.sin(stride + Math.PI) * swing;
+        pud.legBR.rotation.x = Math.sin(stride + Math.PI + 0.9) * swing;
+        pud.mountRoot.position.y = Math.abs(Math.sin(stride)) * 0.08 * moveRatio;
+        pud.mountRoot.rotation.x = Math.cos(stride) * 0.06 * moveRatio;
+        pud.headGroup.rotation.x = Math.sin(stride) * 0.08 * moveRatio;
+      } else {
+        // Idle breathing pose
+        pud.legFL.rotation.x = 0;
+        pud.legFR.rotation.x = 0;
+        pud.legBL.rotation.x = 0;
+        pud.legBR.rotation.x = 0;
+        pud.mountRoot.position.y = Math.sin(timeSec * 2.5) * 0.025;
+        pud.mountRoot.rotation.x = 0;
+        pud.headGroup.rotation.x = Math.sin(timeSec * 1.8) * 0.04;
+      }
+      pud.tailPivot.rotation.y = Math.sin(timeSec * (4.0 + moveRatio * 6.0)) * 0.35;
+      pud.capePivot.rotation.x = 0.18 + moveRatio * 0.42 + Math.sin(timeSec * 8.0) * 0.08;
+      pud.miniPivot.rotation.z = Math.sin(timeSec * 4.5) * 0.08;
     }
 
     const blink1Hz = 0.5 + 0.5 * Math.sin(timeSec * Math.PI * 2.0);
@@ -2292,28 +2655,41 @@
       c.mesh.position.y = c.y + 0.15 * Math.sin(timeSec * 3.0);
     }
 
-    const activeEyeColor = settings.colorblind ? PALETTE.shadeEyeCB : PALETTE.shadeEye;
+    const activeEyeColor = settings.colorblind ? PALETTE.shadeEyeCB : 0xfffbeb;
     for (let i = 0; i < game.shades.length; i++) {
       const sh = game.shades[i];
-      sh.mesh.position.set(sh.x, sh.y + 0.08 * Math.sin(timeSec * 4 + i), sh.z);
+      sh.mesh.position.set(sh.x, sh.y + 0.14 * Math.sin(timeSec * 4.5 + i), sh.z);
       const ud = sh.mesh.userData;
+
+      // Animate crystal wings & golden halo on every bright spirit monster
+      if (ud.wingL && ud.wingR) {
+        const flap = 0.25 * Math.sin(timeSec * 9.0 + i);
+        ud.wingL.rotation.y = flap;
+        ud.wingR.rotation.y = -flap;
+      }
+      if (ud.halo) {
+        ud.halo.rotation.z = timeSec * 3.0 + i;
+      }
 
       if (sh.state === "drain") {
         const tLan = game.lanterns.find((l) => l.id === sh.targetLanternId);
         if (tLan) sh.mesh.rotation.y = Math.atan2(tLan.x - sh.x, tLan.z - sh.z);
         ud.drainBeam.visible = true;
-        ud.drainBeam.material.color.setHex(activeEyeColor);
-        ud.bodyMat.color.setHex(PALETTE.shadeBody);
+        ud.drainBeam.material.color.setHex(0xf43f5e);
+        ud.bodyMat.color.setHex(0xfda4af);
+        ud.bodyMat.emissive.setHex(0xf43f5e);
         ud.eyeMat.color.setHex(activeEyeColor);
       } else {
         ud.drainBeam.visible = false;
         const dx = pl.x - sh.x, dz = pl.z - sh.z;
         if (Math.hypot(dx, dz) > 0.1) sh.mesh.rotation.y = Math.atan2(dx, dz);
         if (sh.state === "stunned") {
-          ud.bodyMat.color.setHex(PALETTE.shadeStun);
+          ud.bodyMat.color.setHex(0xfef08a);
+          ud.bodyMat.emissive.setHex(0xfacc15);
           ud.eyeMat.color.setHex(PALETTE.gold);
         } else {
-          ud.bodyMat.color.setHex(PALETTE.shadeBody);
+          ud.bodyMat.color.setHex(0x7dd3fc);
+          ud.bodyMat.emissive.setHex(0x38bdf8);
           ud.eyeMat.color.setHex(activeEyeColor);
         }
       }
@@ -2321,8 +2697,9 @@
 
     for (const dr of game.drifters) {
       if (dr.state === "removed") continue;
-      dr.mesh.position.set(dr.x, dr.y + 0.15 * Math.sin(timeSec * 5), dr.z);
-      dr.mesh.userData.swirl.rotation.z = timeSec * 6.0;
+      dr.mesh.position.set(dr.x, dr.y + 0.18 * Math.sin(timeSec * 5.5), dr.z);
+      dr.mesh.userData.swirl.rotation.z = timeSec * 6.5;
+      if (dr.mesh.userData.swirl2) dr.mesh.userData.swirl2.rotation.x = timeSec * 5.0;
     }
 
     if (game.windActive || game.windWarn) {
