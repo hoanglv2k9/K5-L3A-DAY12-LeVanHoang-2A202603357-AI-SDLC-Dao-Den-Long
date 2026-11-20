@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import socket
 import subprocess
 import sys
 import tempfile
@@ -287,23 +288,41 @@ class TestHeadlessCLI(unittest.TestCase):
             self.assertEqual(scores, sorted(scores, reverse=True))
 
     def test_web_server_serves_game_contract_v13_and_leaderboard_api(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         proc = subprocess.Popen(
-            [sys.executable, "-m", "src.web_server", "--port", "18765", "--no-open"],
+            [sys.executable, "-m", "src.web_server", "--port", str(port), "--no-open"],
             cwd=str(REPO_ROOT),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         try:
-            time.sleep(1.0)
-            health = opener.open("http://127.0.0.1:18765/health", timeout=5).read().decode()
+            health = ""
+            deadline = time.monotonic() + 10.0
+            last_err: Exception | None = None
+            while time.monotonic() < deadline:
+                if proc.poll() is not None:
+                    err_txt = proc.stderr.read().decode(errors="replace") if proc.stderr else ""
+                    self.fail(f"web_server exited prematurely with code {proc.returncode}: {err_txt}")
+                try:
+                    health = opener.open(f"http://127.0.0.1:{port}/health", timeout=2).read().decode()
+                    break
+                except Exception as exc:
+                    last_err = exc
+                    time.sleep(0.15)
+            else:
+                self.fail(f"web_server did not become ready within 10s on port {port}: {last_err}")
+
             contract = json.loads(
-                opener.open("http://127.0.0.1:18765/game.contract.json", timeout=5).read().decode()
+                opener.open(f"http://127.0.0.1:{port}/game.contract.json", timeout=5).read().decode()
             )
             lb = json.loads(
-                opener.open("http://127.0.0.1:18765/api/leaderboard", timeout=5).read().decode()
+                opener.open(f"http://127.0.0.1:{port}/api/leaderboard", timeout=5).read().decode()
             )
-            three_len = len(opener.open("http://127.0.0.1:18765/vendor/three.min.js", timeout=5).read())
+            three_len = len(opener.open(f"http://127.0.0.1:{port}/vendor/three.min.js", timeout=5).read())
             self.assertIn("true", health.lower())
             self.assertEqual(contract["contract_version"], "1.3")
             self.assertIn("entries", lb)

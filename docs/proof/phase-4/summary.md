@@ -1,5 +1,5 @@
 # Verification Proof — Phase 4 (Test Contract v1.3 · Release v1.0.0)
-- Timestamp (UTC): `2026-11-20T09:51:24.138198+00:00`
+- Timestamp (UTC): `2026-11-20T15:20:09.392947+00:00`
 - Python: `3.13.2`
 
 ## 1. Contract Check
@@ -46,7 +46,7 @@ test_win_dawn_survived_scenario_full_flow (test_headless_cli.TestHeadlessCLI.tes
 [UPDATED v1.1 -> v1.2] Verifies lighting 3/5 lanterns and surviving until dawn yields dawn_survived. ... ok
 
 ----------------------------------------------------------------------
-Ran 29 tests in 10.461s
+Ran 29 tests in 8.916s
 
 OK
 ```
@@ -68,8 +68,8 @@ OK
 - Run 1 SHA-256 (`seed=2026, night=3, 600 ticks`): `298c2bccd627e17d3171a078cb35e027fbd320b9fb6cbaae8c30a5fee0940c97`
 - Run 2 SHA-256 (`seed=2026, night=3, 600 ticks`): `298c2bccd627e17d3171a078cb35e027fbd320b9fb6cbaae8c30a5fee0940c97`
 - Byte-for-byte match: **PASS**
-- 21,600-tick performance benchmark (`Night 3`): **`3.52s`** (budget `<= 30.0s`) — **PASS**
+- 21,600-tick performance benchmark (`Night 3`): **`2.997s`** (budget `<= 30.0s`) — **PASS**
 - `bench.json` (`--seed 42 --duration 30`): `avg_fps=137.1` (`>=60`), `p1_low_fps=63.0` (`>=30`), `frame_ms_p95=8.86ms`, `load_ms=3ms` (`<=10000`), `peak_mem_mb=24.1MB` — **PASS**
 - `soak.json` (`--seed 7 --nights 10`): `crashes=0` (`=0`), `mem_start_mb=24.0MB`, `mem_end_mb=24.0MB` (`<= 1.2 * mem_start_mb`), `duration_s=12.59s` — **PASS**
 - Invalid inputs (`bad_inputs.json`) exit code: **`2`** (stderr: `Format error: frames[1].tick (10) must be strictly greater than previous tick (10)`)
-- Total verification elapsed: `17.14s`
+- Total verification elapsed: `14.84s`
