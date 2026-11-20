@@ -1,7 +1,7 @@
-"""Single-command verification gate & proof generator for Đảo Đèn Lồng.
+"""Single-command verification gate & proof generator for Đảo Đèn Lồng (Contract v1.1).
 
 Usage:
-    python3 scripts/verify_all.py [--phase 1] [--no-write-proof]
+    python3 scripts/verify_all.py [--phase 2] [--no-write-proof]
 """
 from __future__ import annotations
 
@@ -34,14 +34,14 @@ def run_headless_case(args: list[str]) -> subprocess.CompletedProcess:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Verify contract, unit tests, scenarios, determinism.")
-    parser.add_argument("--phase", type=int, default=1, help="Phase number for proof directory")
+    parser = argparse.ArgumentParser(description="Verify contract, unit tests, scenarios, determinism, perf.")
+    parser.add_argument("--phase", type=int, default=2, help="Phase number for proof directory")
     parser.add_argument("--no-write-proof", action="store_true", help="Do not write docs/proof/phase-N/")
     args = parser.parse_args(argv)
 
     t0 = time.perf_counter()
     report_lines: list[str] = [
-        f"# Verification Proof — Phase {args.phase}",
+        f"# Verification Proof — Phase {args.phase} (Test Contract v1.1)",
         f"- Timestamp (UTC): `{datetime.now(timezone.utc).isoformat()}`",
         f"- Python: `{sys.version.split()[0]}`",
         "",
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     report_lines.append((ut.stderr or ut.stdout).strip())
     report_lines.append("```\n")
 
-    # 3. Run headless scenarios + determinism proof
+    # 3. Run headless scenarios + determinism proof + 21,600-tick performance benchmark
     proof_dir = REPO_ROOT / "docs" / "proof" / f"phase-{args.phase}"
     work_ctx = None
     if args.no_write_proof:
@@ -92,10 +92,18 @@ def main(argv: list[str] | None = None) -> int:
                              "--ticks", "300", "--snapshot-every", "60"]),
             ("loss_dawn", ["--seed", "13", "--night", "1", "--scenario", str(SCENARIOS_DIR / "loss_dawn_scenario.json"),
                            "--ticks", "300", "--snapshot-every", "60"]),
+            ("night2_drifter_charm", ["--seed", "22", "--night", "2",
+                                      "--scenario", str(SCENARIOS_DIR / "night2_drifter_charm_scenario.json"),
+                                      "--inputs", str(SCENARIOS_DIR / "night2_drifter_charm_inputs.json"),
+                                      "--ticks", "60", "--snapshot-every", "30"]),
+            ("night3_wind_fall", ["--seed", "33", "--night", "3",
+                                  "--scenario", str(SCENARIOS_DIR / "night3_wind_fall_scenario.json"),
+                                  "--inputs", str(SCENARIOS_DIR / "night3_wind_fall_inputs.json"),
+                                  "--ticks", "120", "--snapshot-every", "30"]),
         ]
         report_lines.append("## 3. Headless Scenarios Proof\n")
-        report_lines.append("| Scenario | Exit | End State | Ticks | Score | Output |")
-        report_lines.append("|---|---:|---|---:|---:|---|")
+        report_lines.append("| Scenario | Night | Exit | End State | Ticks | Score | Output |")
+        report_lines.append("|---|---:|---:|---|---:|---:|---|")
         for name, cargs in cases:
             out_file = out_dir / f"{name}.jsonl"
             cp = run_headless_case([*cargs, "--out", str(out_file)])
@@ -103,15 +111,16 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Scenario {name} failed: {cp.stderr}", file=sys.stderr)
                 return 1
             rows = [json.loads(ln) for ln in out_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
+            snap0 = rows[0]
             end = rows[-1]
             report_lines.append(
-                f"| `{name}` | `{cp.returncode}` | `{end['state']}` | `{end['ticks']}` | `{end['score']}` | `{name}.jsonl` |"
+                f"| `{name}` | `{snap0['night']}` | `{cp.returncode}` | `{end['state']}` | `{end['ticks']}` | `{end['score']}` | `{name}.jsonl` |"
             )
 
-        # Determinism check (600 ticks random night)
+        # Determinism check (600 ticks random Night 3)
         det1 = out_dir / "determinism_run1.jsonl"
         det2 = out_dir / "determinism_run2.jsonl"
-        dargs = ["--seed", "2026", "--night", "1", "--ticks", "600", "--snapshot-every", "60"]
+        dargs = ["--seed", "2026", "--night", "3", "--ticks", "600", "--snapshot-every", "60"]
         r1 = run_headless_case([*dargs, "--out", str(det1)])
         r2 = run_headless_case([*dargs, "--out", str(det2)])
         if r1.returncode != 0 or r2.returncode != 0:
@@ -121,6 +130,20 @@ def main(argv: list[str] | None = None) -> int:
         h2 = hashlib.sha256(det2.read_bytes()).hexdigest()
         if h1 != h2:
             print(f"Determinism FAILED: {h1} != {h2}", file=sys.stderr)
+            return 1
+
+        # Performance benchmark: 21,600 ticks (360s full Night 3) must complete in <= 30.0s
+        perf_out = out_dir / "perf_21600_night3.jsonl"
+        t_perf0 = time.perf_counter()
+        perf_cp = run_headless_case([
+            "--seed", "99", "--night", "3", "--ticks", "21600",
+            "--snapshot-every", "600", "--out", str(perf_out),
+        ])
+        perf_s = round(time.perf_counter() - t_perf0, 3)
+        if perf_out.exists():
+            perf_out.unlink()
+        if perf_cp.returncode != 0 or perf_s > 30.0:
+            print(f"21,600-tick benchmark failed: rc={perf_cp.returncode}, time={perf_s}s", file=sys.stderr)
             return 1
 
         # Malformed input exit code 2 check
@@ -137,17 +160,18 @@ def main(argv: list[str] | None = None) -> int:
             bad_out.unlink()
 
         elapsed = round(time.perf_counter() - t0, 2)
-        report_lines.append("\n## 4. Determinism & Negative Contract Check")
-        report_lines.append(f"- Run 1 SHA-256 (`seed=2026, 600 ticks`): `{h1}`")
-        report_lines.append(f"- Run 2 SHA-256 (`seed=2026, 600 ticks`): `{h2}`")
+        report_lines.append("\n## 4. Determinism, Performance & Negative Contract Check")
+        report_lines.append(f"- Run 1 SHA-256 (`seed=2026, night=3, 600 ticks`): `{h1}`")
+        report_lines.append(f"- Run 2 SHA-256 (`seed=2026, night=3, 600 ticks`): `{h2}`")
         report_lines.append("- Byte-for-byte match: **PASS**")
+        report_lines.append(f"- 21,600-tick performance benchmark (`Night 3, 360s`): **`{perf_s}s`** (budget `<= 30.0s`) — **PASS**")
         report_lines.append(f"- Invalid inputs (`bad_inputs.json`) exit code: **`{bad_cp.returncode}`** (stderr: `{bad_cp.stderr.strip()}`)")
         report_lines.append(f"- Total verification elapsed: `{elapsed}s`")
 
         if not args.no_write_proof:
             (proof_dir / "summary.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")
 
-        print(f"ALL CHECKS PASSED in {elapsed}s (determinism SHA-256={h1[:16]}...)")
+        print(f"ALL CHECKS PASSED in {elapsed}s (21600-tick perf={perf_s}s, determinism SHA-256={h1[:16]}...)")
         return 0
     finally:
         if work_ctx is not None:

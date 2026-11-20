@@ -1,4 +1,4 @@
-"""Subprocess integration tests for Test Contract v1.0 headless CLI and web server."""
+"""Subprocess integration tests for Test Contract v1.1 headless CLI and web server."""
 from __future__ import annotations
 
 import hashlib
@@ -47,11 +47,13 @@ class TestHeadlessCLI(unittest.TestCase):
             rows = parse_jsonl(out)
             self.assertEqual(rows[0]["type"], "snapshot")
             self.assertEqual(rows[0]["tick"], 0)
+            self.assertEqual(rows[0]["night"], 1)
             self.assertEqual(rows[-1]["type"], "end")
             self.assertEqual(rows[-1]["state"], "won")
             self.assertGreater(rows[-1]["score"], 0)
 
             event_names = [r["name"] for r in rows if r["type"] == "event"]
+            self.assertIn("night_start", event_names)
             self.assertEqual(event_names.count("mote_picked"), 4)
             self.assertIn("deposit", event_names)
             self.assertIn("lantern_lit", event_names)
@@ -127,11 +129,55 @@ class TestHeadlessCLI(unittest.TestCase):
             go = [r for r in rows if r["type"] == "event" and r["name"] == "game_over"]
             self.assertEqual(go[-1]["data"], {"result": "lost", "reason": "dawn"})
 
+    def test_night2_drifter_charm_and_dash_scenario(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "night2.jsonl"
+            cp = run_cli([
+                "--seed", "22",
+                "--night", "2",
+                "--scenario", str(SCENARIOS / "night2_drifter_charm_scenario.json"),
+                "--inputs", str(SCENARIOS / "night2_drifter_charm_inputs.json"),
+                "--ticks", "60",
+                "--out", str(out),
+                "--snapshot-every", "30",
+            ])
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            rows = parse_jsonl(out)
+            names = [r["name"] for r in rows if r["type"] == "event"]
+            self.assertIn("charm_picked", names)
+            self.assertIn("drifter_steal", names)
+            self.assertIn("drifter_drop", names)
+            self.assertIn("dash", names)
+
+    def test_night3_pause_and_fall_scenario(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "night3.jsonl"
+            cp = run_cli([
+                "--seed", "33",
+                "--night", "3",
+                "--scenario", str(SCENARIOS / "night3_wind_fall_scenario.json"),
+                "--inputs", str(SCENARIOS / "night3_wind_fall_inputs.json"),
+                "--ticks", "120",
+                "--out", str(out),
+                "--snapshot-every", "30",
+            ])
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            rows = parse_jsonl(out)
+            names = [r["name"] for r in rows if r["type"] == "event"]
+            self.assertIn("paused", names)
+            self.assertIn("resumed", names)
+            fall_hits = [
+                r for r in rows
+                if r["type"] == "event" and r["name"] == "player_hit" and r["data"].get("by") == "fall"
+            ]
+            self.assertEqual(len(fall_hits), 1)
+            self.assertEqual(fall_hits[0]["data"]["lost"], 5)
+
     def test_determinism_identical_bytes(self):
         with tempfile.TemporaryDirectory() as tmp:
             out1 = Path(tmp) / "run1.jsonl"
             out2 = Path(tmp) / "run2.jsonl"
-            common = ["--seed", "12345", "--night", "1", "--ticks", "600", "--snapshot-every", "60"]
+            common = ["--seed", "12345", "--night", "3", "--ticks", "600", "--snapshot-every", "60"]
             cp1 = run_cli([*common, "--out", str(out1)])
             cp2 = run_cli([*common, "--out", str(out2)])
             self.assertEqual(cp1.returncode, 0, cp1.stderr)
@@ -153,7 +199,7 @@ class TestHeadlessCLI(unittest.TestCase):
             self.assertEqual(cp.returncode, 2)
             self.assertTrue(len(cp.stderr.strip()) > 0)
 
-    def test_web_server_serves_game_and_contract(self):
+    def test_web_server_serves_game_and_contract_v11(self):
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         proc = subprocess.Popen(
             [sys.executable, "-m", "src.web_server", "--port", "18765", "--no-open"],
@@ -169,7 +215,7 @@ class TestHeadlessCLI(unittest.TestCase):
             )
             three_len = len(opener.open("http://127.0.0.1:18765/vendor/three.min.js", timeout=5).read())
             self.assertIn('"ok":true', health)
-            self.assertEqual(contract["contract_version"], "1.0")
+            self.assertEqual(contract["contract_version"], "1.1")
             self.assertGreater(three_len, 100_000)
         finally:
             proc.terminate()
