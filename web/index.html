@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đảo Đèn Lồng — Đêm 1: Đảo Bến</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+
+  <div id="hud">
+    <div class="hud-top">
+      <div class="hud-card brand">
+        <div class="title">🏮 Đảo Đèn Lồng</div>
+        <div class="subtitle">Đêm 1 · Đảo Bến</div>
+      </div>
+
+      <div class="hud-card stats">
+        <div class="stat">
+          <span class="label">Ngọn lửa (Máu)</span>
+          <span id="hud-flames" class="val flames">🔥🔥🔥</span>
+        </div>
+        <div class="stat">
+          <span class="label">Đom đóm mang</span>
+          <span id="hud-carried" class="val gold">0 / 6</span>
+        </div>
+        <div class="stat">
+          <span class="label">Đèn Lồng Lớn</span>
+          <span id="hud-lanterns" class="val gold">0 / 5</span>
+        </div>
+        <div class="stat">
+          <span class="label">Thời gian</span>
+          <span id="hud-time" class="val">05:00</span>
+        </div>
+        <div class="stat">
+          <span class="label">Điểm số</span>
+          <span id="hud-score" class="val gold">0</span>
+        </div>
+      </div>
+
+      <div class="hud-card pulse-box">
+        <span class="label">Tỏa sáng [Shift]</span>
+        <div class="bar-bg"><div id="hud-pulse-bar" class="bar-fill"></div></div>
+        <span id="hud-pulse-text" class="mini">Sẵn sàng (tốn 2)</span>
+      </div>
+    </div>
+
+    <div id="prompt-banner" class="prompt-banner hidden">Nhấn [F] để nạp đom đóm vào Đèn Lồng Lớn</div>
+    <div id="toast" class="toast hidden"></div>
+
+    <div class="hud-bottom">
+      <div class="controls-hint">
+        <b>WASD / Mũi tên</b> Di chuyển · <b>Q/E hoặc kéo chuột</b> Xoay camera · <b>Space</b> Nhảy · <b>F</b> Nạp đèn · <b>Shift</b> Tỏa sáng · <b>M</b> Âm thanh · <b>R</b> Chơi lại
+      </div>
+      <div class="mini-actions">
+        <button id="btn-mute" class="btn-ghost">🔊 Âm thanh</button>
+        <button id="btn-restart-hud" class="btn-ghost">↻ Chơi lại</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <div class="modal">
+      <div class="modal-icon" id="modal-icon">🏮</div>
+      <h1 id="modal-title">Đảo Đèn Lồng</h1>
+      <p id="modal-desc">
+        Đêm 1 — <b>Đảo Bến</b>. Sương đen đã nuốt lấy ánh sáng của hòn đảo giữa biển mây.
+        Hãy giúp <b>Mây</b> thu thập đom đóm vàng ấm để thắp sáng cả <b>5 Đèn Lồng Lớn</b> trước khi bình minh tới,
+        tránh xa <b>Bóng Mực</b> tím đen hoặc dùng <b>Tỏa sáng [Shift]</b> để xua chúng đi!
+      </p>
+      <div id="modal-stats" class="modal-stats hidden"></div>
+      <button id="btn-play" class="btn-primary">Bắt đầu Đêm 1</button>
+    </div>
+  </div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
