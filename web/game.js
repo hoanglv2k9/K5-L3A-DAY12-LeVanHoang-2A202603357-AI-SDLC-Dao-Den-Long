@@ -81,6 +81,7 @@
     dash: "ShiftLeft",
     interact: "KeyE",
     pulse: "KeyQ",
+    poop: "KeyC",
     pause: "Escape",
   };
 
@@ -93,6 +94,7 @@
     dash: "Lướt (Dash)",
     interact: "Thắp / Châm dầu",
     pulse: "Tỏa sáng",
+    poop: "Sư tử thả bẫy",
     pause: "Tạm dừng",
   };
 
@@ -149,12 +151,14 @@
         `<b>${formatKeyCode(kb.forward)}/${formatKeyCode(kb.left)}/${formatKeyCode(kb.back)}/${formatKeyCode(kb.right)}</b> Di chuyển · ` +
         `<b>${formatKeyCode(kb.jump)}</b> Nhảy · <b>${formatKeyCode(kb.dash)}</b> Lướt · ` +
         `<b>${formatKeyCode(kb.interact)}</b> Thắp/Châm dầu · <b>${formatKeyCode(kb.pulse)}/RMB</b> Tỏa sáng · ` +
-        `<b>${formatKeyCode(kb.pause)}</b> Tạm dừng`;
+        `<b>${formatKeyCode(kb.poop)}</b> Thả bẫy 💩 · <b>${formatKeyCode(kb.pause)}</b> Tạm dừng`;
     }
     const lblDash = document.getElementById("lbl-key-dash");
     const lblPulse = document.getElementById("lbl-key-pulse");
+    const lblPoop = document.getElementById("lbl-key-poop");
     if (lblDash) lblDash.textContent = formatKeyCode(kb.dash);
     if (lblPulse) lblPulse.textContent = `${formatKeyCode(kb.pulse)} / RMB`;
+    if (lblPoop) lblPoop.textContent = formatKeyCode(kb.poop);
   }
   applyAccessibilityClasses();
 
@@ -219,6 +223,8 @@
     wind() { this.tone(190, 0.45, "sine", 0.05); this.tone(240, 0.45, "triangle", 0.04, 0.12); }
     countdownTick() { this.tone(920, 0.07, "sine", 0.06); }
     hit() { this.tone(170, 0.25, "sawtooth", 0.08); this.tone(125, 0.3, "triangle", 0.08, 0.07); }
+    lionDrop() { this.tone(160, 0.14, "triangle", 0.09); this.tone(110, 0.18, "sine", 0.09, 0.06); }
+    trapKill() { [392, 523.25, 783.99].forEach((f, i) => this.tone(f, 0.18, "triangle", 0.09, i * 0.05)); }
     win() { [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, 0.55, "sine", 0.09, i * 0.1)); }
     lose() { [311, 277, 233, 185].forEach((f, i) => this.tone(f, 0.45, "triangle", 0.08, i * 0.13)); }
   }
@@ -243,6 +249,8 @@
   const hudDashText = document.getElementById("hud-dash-text");
   const hudPulseBar = document.getElementById("hud-pulse-bar");
   const hudPulseText = document.getElementById("hud-pulse-text");
+  const hudPoopBar = document.getElementById("hud-poop-bar");
+  const hudPoopText = document.getElementById("hud-poop-text");
   const promptBanner = document.getElementById("prompt-banner");
   const subtitleBanner = document.getElementById("subtitle-banner");
   const toastEl = document.getElementById("toast");
@@ -992,10 +1000,249 @@
     return g;
   }
 
+  // Glowing 3D Golden-Amber Lion Trap ("Sư tử thả bẫy") that eliminates monsters on contact
+  function buildLionTrapMesh() {
+    const g = new THREE.Group();
+    const trapMat = new THREE.MeshStandardMaterial({
+      color: 0x92400e,
+      emissive: 0x451a03,
+      emissiveIntensity: 0.55,
+      roughness: 0.55,
+    });
+    const tier1 = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.14, 10, 18), trapMat);
+    tier1.rotation.x = Math.PI / 2;
+    tier1.position.y = 0.14;
+    tier1.castShadow = true;
+    g.add(tier1);
+
+    const tier2 = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.12, 10, 16), trapMat);
+    tier2.rotation.x = Math.PI / 2;
+    tier2.position.y = 0.34;
+    g.add(tier2);
+
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.26, 12), trapMat);
+    tip.position.y = 0.53;
+    g.add(tip);
+
+    // Cute glowing lime-gold hazard aura ring & rising stink/sparkle wisps
+    const hazardRing = new THREE.Mesh(
+      new THREE.RingGeometry(1.38, 1.55, 28),
+      new THREE.MeshBasicMaterial({
+        color: 0xa3e635,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.72,
+      })
+    );
+    hazardRing.rotation.x = -Math.PI / 2;
+    hazardRing.position.y = 0.04;
+    g.add(hazardRing);
+
+    const wisps = [];
+    const wispMat = new THREE.MeshBasicMaterial({ color: 0xd9f99d, transparent: true, opacity: 0.8 });
+    for (let i = 0; i < 3; i++) {
+      const w = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), wispMat);
+      const a = (i * Math.PI * 2) / 3;
+      w.position.set(Math.cos(a) * 0.24, 0.65 + i * 0.18, Math.sin(a) * 0.24);
+      g.add(w);
+      wisps.push(w);
+    }
+    g.userData = { hazardRing, wisps };
+    return g;
+  }
+
+  // Luxury 3D Yacht floating & cruising around the island cloud/water rim
+  function buildYachtMesh(accentHex = 0x38bdf8) {
+    const g = new THREE.Group();
+    const hullMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.28, metalness: 0.2 });
+    const deckMat = new THREE.MeshStandardMaterial({ color: 0xc28a53, roughness: 0.7 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.5,
+      roughness: 0.15,
+      metalness: 0.5,
+    });
+    const trimMat = new THREE.MeshBasicMaterial({ color: accentHex });
+
+    // Lower hull
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.25, 9.6), hullMat);
+    hull.position.set(0, 0.5, 0);
+    hull.castShadow = true;
+    g.add(hull);
+
+    // Pointed bow prow
+    const bow = new THREE.Mesh(new THREE.ConeGeometry(1.85, 3.6, 4), hullMat);
+    bow.rotation.x = Math.PI / 2;
+    bow.rotation.y = Math.PI / 4;
+    bow.scale.set(1.28, 1.0, 0.52);
+    bow.position.set(0, 0.52, 6.2);
+    g.add(bow);
+
+    // Teak wooden sun deck
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.16, 8.8), deckMat);
+    deck.position.set(0, 1.18, 0.2);
+    g.add(deck);
+
+    // Panoramic glass cabin
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.25, 4.6), hullMat);
+    cabin.position.set(0, 1.85, -0.3);
+    cabin.castShadow = true;
+    g.add(cabin);
+
+    const windows = new THREE.Mesh(new THREE.BoxGeometry(2.58, 0.72, 3.9), glassMat);
+    windows.position.set(0, 1.92, -0.1);
+    g.add(windows);
+
+    // Upper flybridge & radar mast
+    const upperRoof = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.18, 3.6), hullMat);
+    upperRoof.position.set(0, 2.58, -0.5);
+    g.add(upperRoof);
+
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 1.6, 8), hullMat);
+    mast.position.set(0, 3.4, -0.8);
+    g.add(mast);
+
+    // Glowing neon waterline & cabin deck lights
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(3.52, 0.18, 9.4), trimMat);
+    stripe.position.set(0, 0.3, 0.1);
+    g.add(stripe);
+
+    const boatLight = new THREE.PointLight(accentHex, 1.4, 18);
+    boatLight.position.set(0, 2.8, 0.5);
+    g.add(boatLight);
+
+    return g;
+  }
+
+  // Vibrant Tropical Island Bar with Neon Sign, String Lights, Stools, Palm Tree & Cocktail Bottles
+  function buildIslandBarMesh(neonHex = 0xf43f5e) {
+    const g = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x7c4a27, roughness: 0.78 });
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x452611, roughness: 0.85 });
+    const thatchMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.85 });
+    const roofStripeMat = new THREE.MeshStandardMaterial({ color: neonHex, emissive: neonHex, emissiveIntensity: 0.35 });
+
+    // Wooden terrace floor
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.24, 5.4), darkWoodMat);
+    floor.position.y = 0.12;
+    floor.receiveShadow = true;
+    g.add(floor);
+
+    // Glowing dance tile inlay
+    const danceTile = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.8, 4.4),
+      new THREE.MeshBasicMaterial({ color: neonHex, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+    );
+    danceTile.rotation.x = -Math.PI / 2;
+    danceTile.position.y = 0.25;
+    g.add(danceTile);
+
+    // Bar Counter
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.15, 1.05), woodMat);
+    counter.position.set(0, 0.82, -0.6);
+    counter.castShadow = true;
+    g.add(counter);
+
+    const counterTop = new THREE.Mesh(
+      new THREE.BoxGeometry(4.6, 0.14, 1.25),
+      new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.35 })
+    );
+    counterTop.position.set(0, 1.42, -0.6);
+    g.add(counterTop);
+
+    // Back Bottle Shelf & Colorful Glowing Cocktail Bottles
+    const backShelf = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.2, 0.45), darkWoodMat);
+    backShelf.position.set(0, 1.35, -2.1);
+    g.add(backShelf);
+
+    const bottleColors = [0x38bdf8, 0xfacc15, 0xf43f5e, 0xa3e635, 0xc084fc, 0xfb923c];
+    for (let i = 0; i < 6; i++) {
+      const bottle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.11, 0.42, 8),
+        new THREE.MeshBasicMaterial({ color: bottleColors[i] })
+      );
+      bottle.position.set(-1.5 + i * 0.6, 1.95, -1.95);
+      g.add(bottle);
+    }
+
+    // 4 Corner Posts & Striped Tropical Awning Roof
+    for (const px of [-2.4, 2.4]) {
+      for (const pz of [-2.0, 0.4]) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 3.1, 8), woodMat);
+        post.position.set(px, 1.75, pz);
+        post.castShadow = true;
+        g.add(post);
+      }
+    }
+
+    const awning = new THREE.Mesh(new THREE.ConeGeometry(3.8, 1.35, 4), thatchMat);
+    awning.rotation.y = Math.PI / 4;
+    awning.position.set(0, 3.85, -0.8);
+    g.add(awning);
+
+    // Glowing Neon Bar Sign on front fascia
+    const neonSign = new THREE.Mesh(
+      new THREE.BoxGeometry(3.2, 0.55, 0.16),
+      new THREE.MeshBasicMaterial({ color: neonHex })
+    );
+    neonSign.position.set(0, 3.15, 0.55);
+    g.add(neonSign);
+
+    // String fairy bulbs along the bar eaves
+    const bulbColors = [0xfef08a, 0x38bdf8, 0xfb7185, 0x4ade80];
+    for (let i = 0; i < 7; i++) {
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 8, 8),
+        new THREE.MeshBasicMaterial({ color: bulbColors[i % bulbColors.length] })
+      );
+      bulb.position.set(-2.1 + i * 0.7, 2.85, 0.52);
+      g.add(bulb);
+    }
+
+    // 4 High Bar Stools in front of the counter
+    for (let i = 0; i < 4; i++) {
+      const sx = -1.5 + i * 1.0;
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.75, 8), darkWoodMat);
+      leg.position.set(sx, 0.62, 0.65);
+      g.add(leg);
+      const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.1, 12), roofStripeMat);
+      seat.position.set(sx, 1.0, 0.65);
+      g.add(seat);
+    }
+
+    // Decorative Tropical Palm Tree beside the bar
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.22, 3.6, 8), woodMat);
+    trunk.position.set(3.2, 1.8, -1.2);
+    trunk.rotation.z = -0.14;
+    g.add(trunk);
+    const frondMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.6 });
+    for (let f = 0; f < 5; f++) {
+      const fa = (f / 5) * Math.PI * 2;
+      const frond = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.0, 5), frondMat);
+      frond.position.set(3.45 + Math.cos(fa) * 0.7, 3.6, -1.2 + Math.sin(fa) * 0.7);
+      frond.rotation.z = Math.PI / 2.2;
+      frond.rotation.y = -fa;
+      g.add(frond);
+    }
+
+    const barLight = new THREE.PointLight(neonHex, 2.4, 22);
+    barLight.position.set(0, 2.6, 0.8);
+    g.add(barLight);
+
+    g.userData = { neonSign, danceTile, barLight };
+    return g;
+  }
+
+  const scenicYachts = [];
+  const scenicBars = [];
+
   function buildIslandEnvironment(night) {
     while (worldGroup.children.length > 0) {
       worldGroup.remove(worldGroup.children[0]);
     }
+    scenicYachts.length = 0;
+    scenicBars.length = 0;
 
     const grassMat = new THREE.MeshStandardMaterial({ color: PALETTE.islandGrass, roughness: 0.9 });
     const sandMat = new THREE.MeshStandardMaterial({ color: PALETTE.islandSand, roughness: 0.92 });
@@ -1023,6 +1270,31 @@
       pier.position.set(0, 0.1, 36.5);
       pier.receiveShadow = true;
       worldGroup.add(pier);
+
+      // Night 1 Island Bars
+      const barPositions = [
+        { x: 14, y: 0, z: 30, rot: -0.45, color: 0xf43f5e },
+        { x: -24, y: 0, z: -22, rot: 2.35, color: 0x38bdf8 },
+      ];
+      for (const bp of barPositions) {
+        const bar = buildIslandBarMesh(bp.color);
+        bar.position.set(bp.x, bp.y, bp.z);
+        bar.rotation.y = bp.rot;
+        worldGroup.add(bar);
+        scenicBars.push(bar);
+      }
+
+      // Night 1 Luxury Yachts cruising & anchored around Đảo Bến
+      const yachtConfigs = [
+        { cx: 0, cz: 0, r: 48, angle: 0.3, speed: 0.08, accent: 0x38bdf8 },
+        { cx: 0, cz: 0, r: 51, angle: 2.3, speed: -0.06, accent: 0xfacc15 },
+        { cx: 0, cz: 0, r: 47, angle: 4.5, speed: 0.07, accent: 0xf43f5e },
+      ];
+      for (const yc of yachtConfigs) {
+        const yacht = buildYachtMesh(yc.accent);
+        worldGroup.add(yacht);
+        scenicYachts.push({ mesh: yacht, ...yc });
+      }
     } else if (night === 2) {
       for (const cx of [0, 70]) {
         const grass = new THREE.Mesh(new THREE.CylinderGeometry(26.8, 27.4, 1.8, 44), grassMat);
@@ -1045,6 +1317,28 @@
       const jp2 = buildJumpPadMesh();
       jp2.position.set(50, 0, -18);
       worldGroup.add(jp1, jp2);
+
+      // Night 2 Island Bars (one on Island A, one on Island B)
+      const barA = buildIslandBarMesh(0xf43f5e);
+      barA.position.set(-14, 0, 16);
+      barA.rotation.y = 0.65;
+      const barB = buildIslandBarMesh(0x22d3ee);
+      barB.position.set(84, 0, 15);
+      barB.rotation.y = -0.75;
+      worldGroup.add(barA, barB);
+      scenicBars.push(barA, barB);
+
+      // Night 2 Yachts around both islands
+      const yachtConfigs2 = [
+        { cx: 0, cz: 0, r: 35, angle: 1.2, speed: 0.09, accent: 0x38bdf8 },
+        { cx: 70, cz: 0, r: 36, angle: 4.1, speed: -0.08, accent: 0xfacc15 },
+        { cx: 35, cz: 0, r: 44, angle: 1.57, speed: 0.05, accent: 0xf43f5e },
+      ];
+      for (const yc of yachtConfigs2) {
+        const yacht = buildYachtMesh(yc.accent);
+        worldGroup.add(yacht);
+        scenicYachts.push({ mesh: yacht, ...yc });
+      }
     } else {
       const t0 = new THREE.Mesh(new THREE.CylinderGeometry(43.8, 44.5, 1.8, 56), grassMat);
       t0.position.y = -0.9;
@@ -1109,6 +1403,28 @@
       );
       bell.position.set(0, 12.6, 0);
       worldGroup.add(bell);
+
+      // Night 3 Island Bars on Tier 0 boardwalk
+      const barN3A = buildIslandBarMesh(0xfacc15);
+      barN3A.position.set(28, 0, 26);
+      barN3A.rotation.y = -0.8;
+      const barN3B = buildIslandBarMesh(0xf43f5e);
+      barN3B.position.set(-28, 0, -24);
+      barN3B.rotation.y = 2.35;
+      worldGroup.add(barN3A, barN3B);
+      scenicBars.push(barN3A, barN3B);
+
+      // Night 3 Luxury Yachts around Đảo Chuông
+      const yachtConfigs3 = [
+        { cx: 0, cz: 0, r: 53, angle: 0.5, speed: 0.07, accent: 0xfacc15 },
+        { cx: 0, cz: 0, r: 56, angle: 2.6, speed: -0.06, accent: 0x38bdf8 },
+        { cx: 0, cz: 0, r: 54, angle: 4.8, speed: 0.08, accent: 0xf43f5e },
+      ];
+      for (const yc of yachtConfigs3) {
+        const yacht = buildYachtMesh(yc.accent);
+        worldGroup.add(yacht);
+        scenicYachts.push({ mesh: yacht, ...yc });
+      }
     }
 
     const cxCenter = night === 2 ? 35 : 0;
@@ -1141,7 +1457,7 @@
 
   // Input Handling (supports custom remapped keys from settings.keybinds)
   const keys = {};
-  const edge = { jump: false, dash: false, interact: false, pulse: false };
+  const edge = { jump: false, dash: false, interact: false, pulse: false, poop: false };
   let listeningKeyAction = null;
   let camYawDeg = 0;
   let camPitch = 0.44;
@@ -1170,6 +1486,7 @@
       if (code === kb.dash) edge.dash = true;
       if (code === kb.interact || code === "KeyF") edge.interact = true;
       if (code === kb.pulse || code === "KeyX") edge.pulse = true;
+      if (code === kb.poop) edge.poop = true;
       if (code === kb.pause || code === "KeyP") togglePause();
       if (code === "KeyM") toggleMute();
     }
@@ -1372,6 +1689,7 @@
         dashDirX: 0,
         dashDirZ: 1,
         pulseCdTicks: 0,
+        poopCdTicks: 0,
         charmTicks: 0,
         fallWaitTicks: 0,
         launchActive: false,
@@ -1384,6 +1702,7 @@
       motes: [],
       shades: [],
       drifters: [],
+      lionTraps: [],
       charms,
       nextMoteSeq: 1,
       nextShadeSeq: 1,
@@ -1719,6 +2038,7 @@
     game.timeLeftS = Math.max(0, game.initialTimeS - game.simTick / 60);
     if (pl.dashCdTicks > 0) pl.dashCdTicks -= 1;
     if (pl.pulseCdTicks > 0) pl.pulseCdTicks -= 1;
+    if (pl.poopCdTicks > 0) pl.poopCdTicks -= 1;
     if (pl.invulnTicks > 0) pl.invulnTicks -= 1;
     if (pl.charmTicks > 0) {
       pl.charmTicks -= 1;
@@ -1824,6 +2144,7 @@
     const justDash = edge.dash; edge.dash = false;
     const justInteract = edge.interact; edge.interact = false;
     const justPulse = edge.pulse; edge.pulse = false;
+    const justPoop = edge.poop; edge.poop = false;
 
     if (pl.fallWaitTicks === 0) {
       const theta = (camYawDeg * Math.PI) / 180;
@@ -2290,6 +2611,71 @@
       }
     }
 
+    // Lion Drop Trap ("Sư tử ỉa xuống" [C] — 2.5s cooldown, max 8 traps active, kills monsters on contact)
+    if (justPoop && pl.fallWaitTicks === 0 && pl.poopCdTicks === 0) {
+      pl.poopCdTicks = 150;
+      const trapX = pl.x - pl.facingX * 0.95;
+      const trapZ = pl.z - pl.facingZ * 0.95;
+      const trapY = Math.max(0, pl.y);
+      const trapMesh = buildLionTrapMesh();
+      trapMesh.position.set(trapX, trapY, trapZ);
+      entitiesGroup.add(trapMesh);
+      game.lionTraps.push({ x: trapX, y: trapY, z: trapZ, ttlTicks: 1200, mesh: trapMesh });
+      if (game.lionTraps.length > 8) {
+        const oldest = game.lionTraps.shift();
+        if (oldest && oldest.mesh) entitiesGroup.remove(oldest.mesh);
+      }
+      sfx.lionDrop();
+      showToast("💩 Sư Tử Hoàng Kim vừa thả bẫy! Quái đi qua sẽ tự tiêu diệt (+15 điểm)!");
+    }
+
+    // Lion Trap Expiration & Monster Auto-Death Check
+    for (let ti = game.lionTraps.length - 1; ti >= 0; ti--) {
+      const tr = game.lionTraps[ti];
+      tr.ttlTicks -= 1;
+      if (tr.ttlTicks <= 0) {
+        entitiesGroup.remove(tr.mesh);
+        game.lionTraps.splice(ti, 1);
+      }
+    }
+
+    for (let si = game.shades.length - 1; si >= 0; si--) {
+      const sh = game.shades[si];
+      const hitTrapIdx = game.lionTraps.findIndex(
+        (tr) => Math.hypot(sh.x - tr.x, sh.z - tr.z) <= 1.65 && Math.abs(sh.y - tr.y) <= 1.5
+      );
+      if (hitTrapIdx !== -1) {
+        const tr = game.lionTraps[hitTrapIdx];
+        entitiesGroup.remove(tr.mesh);
+        game.lionTraps.splice(hitTrapIdx, 1);
+        entitiesGroup.remove(sh.mesh);
+        game.shades.splice(si, 1);
+        game.score += 15;
+        sfx.trapKill();
+        showToast(`💥 Quái ${sh.id} dẫm bẫy Sư Tử và tự chết! (+15 điểm)`);
+        showSubtitle(`💩 Phụ đề: Quái ${sh.id} vừa bị bẫy Sư Tử tiêu diệt!`, 2.2);
+      }
+    }
+
+    for (let di = game.drifters.length - 1; di >= 0; di--) {
+      const dr = game.drifters[di];
+      if (dr.state === "removed") continue;
+      const hitTrapIdx = game.lionTraps.findIndex(
+        (tr) => Math.hypot(dr.x - tr.x, dr.z - tr.z) <= 1.65 && Math.abs(dr.y - tr.y) <= 1.5
+      );
+      if (hitTrapIdx !== -1) {
+        const tr = game.lionTraps[hitTrapIdx];
+        entitiesGroup.remove(tr.mesh);
+        game.lionTraps.splice(hitTrapIdx, 1);
+        if (dr.stolen > 0) scatterDroppedMotes(dr.x, dr.y, dr.z, dr.stolen, 0.8);
+        entitiesGroup.remove(dr.mesh);
+        game.drifters.splice(di, 1);
+        game.score += 20;
+        sfx.trapKill();
+        showToast(`💥 Tiểu yêu Gió Lạc ${dr.id} dẫm bẫy Sư Tử và tự chết! (+20 điểm)`);
+      }
+    }
+
     // Step 9: Collisions
     if (pl.fallWaitTicks === 0) {
       for (const dr of game.drifters) {
@@ -2465,6 +2851,18 @@
     } else {
       hudPulseBar.style.width = "100%";
       hudPulseText.textContent = `Sẵn sàng (tốn ${t.pulse_cost})`;
+    }
+
+    if (hudPoopBar && hudPoopText) {
+      const maxPoopCd = 150;
+      if (pl.poopCdTicks > 0) {
+        const ratio = 1 - pl.poopCdTicks / maxPoopCd;
+        hudPoopBar.style.width = `${Math.round(ratio * 100)}%`;
+        hudPoopText.textContent = `Hồi: ${(pl.poopCdTicks / 60).toFixed(1)}s`;
+      } else {
+        hudPoopBar.style.width = "100%";
+        hudPoopText.textContent = `Sẵn sàng (${game.lionTraps.length}/8 bẫy)`;
+      }
     }
 
     const nearLantern = game.lanterns
@@ -2700,6 +3098,42 @@
       dr.mesh.position.set(dr.x, dr.y + 0.18 * Math.sin(timeSec * 5.5), dr.z);
       dr.mesh.userData.swirl.rotation.z = timeSec * 6.5;
       if (dr.mesh.userData.swirl2) dr.mesh.userData.swirl2.rotation.x = timeSec * 5.0;
+    }
+
+    // Animate Lion Traps (rising wisps + pulsing hazard ring)
+    for (let ti = 0; ti < game.lionTraps.length; ti++) {
+      const tr = game.lionTraps[ti];
+      const tud = tr.mesh.userData;
+      if (tud && tud.wisps) {
+        for (let wi = 0; wi < tud.wisps.length; wi++) {
+          const w = tud.wisps[wi];
+          const phase = (timeSec * 1.8 + wi * 0.33 + ti * 0.2) % 1.0;
+          w.position.y = 0.55 + phase * 0.65;
+          w.scale.setScalar(1.0 - phase * 0.45);
+        }
+        tud.hazardRing.material.opacity = 0.5 + 0.3 * Math.sin(timeSec * 5.0 + ti);
+      }
+    }
+
+    // Animate Luxury Yachts cruising & gently bobbing around the island
+    for (let yi = 0; yi < scenicYachts.length; yi++) {
+      const yObj = scenicYachts[yi];
+      const curAngle = yObj.angle + timeSec * yObj.speed;
+      const yx = yObj.cx + Math.cos(curAngle) * yObj.r;
+      const yz = yObj.cz + Math.sin(curAngle) * yObj.r;
+      yObj.mesh.position.set(yx, -0.35 + 0.22 * Math.sin(timeSec * 1.6 + yi), yz);
+      const heading = curAngle + (yObj.speed >= 0 ? Math.PI / 2 : -Math.PI / 2);
+      yObj.mesh.rotation.y = -heading + Math.PI / 2;
+      yObj.mesh.rotation.z = 0.045 * Math.sin(timeSec * 1.9 + yi);
+    }
+
+    // Animate Island Bars neon glow & dance floor pulse
+    for (let bi = 0; bi < scenicBars.length; bi++) {
+      const bud = scenicBars[bi].userData;
+      if (bud && bud.barLight) {
+        bud.barLight.intensity = 2.1 + 0.7 * Math.sin(timeSec * 4.0 + bi * 1.4);
+        bud.danceTile.material.opacity = 0.16 + 0.12 * Math.sin(timeSec * 5.0 + bi);
+      }
     }
 
     if (game.windActive || game.windWarn) {

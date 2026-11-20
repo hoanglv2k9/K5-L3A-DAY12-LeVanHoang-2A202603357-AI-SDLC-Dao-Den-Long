@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Đảo Đèn Lồng v1.0.0 — Bình Minh (Contract v1.3)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div id="canvas-wrap"></div>
   <div id="screen-flash" class="screen-flash hidden"></div>
@@ -81,7 +83,8 @@
     <!-- Bottom HUD: Progressive 10..20-slot Mote bar center + Dash & Pulse cooldown icons right -->
     <div class="hud-bottom">
       <div id="controls-hint" class="controls-hint">
-        <b>WASD</b> Di chuyển · <b>Space</b> Nhảy · <b>Shift</b> Lướt · <b>E</b> Thắp/Châm dầu · <b>Q / RMB</b> Tỏa sáng · <b>Esc</b> Tạm dừng
+        <b>WASD</b> Di chuyển · <b>Space</b> Nhảy · <b>Shift</b> Lướt · <b>E</b> Thắp/Châm dầu · <b>Q / RMB</b> Tỏa sáng
+        · <b>Esc</b> Tạm dừng
       </div>
 
       <div class="hud-card mote-bar-card">
@@ -93,12 +96,25 @@
       </div>
 
       <div class="skills-row">
+        <div class="hud-card skill-card" id="skill-poop">
+          <div class="skill-head">
+            <span id="lbl-key-poop" class="skill-key">C</span>
+            <span class="skill-name">Thả bẫy 💩</span>
+          </div>
+          <div class="bar-bg">
+            <div id="hud-poop-bar" class="bar-fill poop-fill"></div>
+          </div>
+          <span id="hud-poop-text" class="mini">Sẵn sàng (Quái đụng chết)</span>
+        </div>
+
         <div class="hud-card skill-card" id="skill-dash">
           <div class="skill-head">
             <span id="lbl-key-dash" class="skill-key">Shift</span>
             <span class="skill-name">Lướt</span>
           </div>
-          <div class="bar-bg"><div id="hud-dash-bar" class="bar-fill dash-fill"></div></div>
+          <div class="bar-bg">
+            <div id="hud-dash-bar" class="bar-fill dash-fill"></div>
+          </div>
           <span id="hud-dash-text" class="mini">Sẵn sàng (14 m/s)</span>
         </div>
 
@@ -107,7 +123,9 @@
             <span id="lbl-key-pulse" class="skill-key">Q / RMB</span>
             <span class="skill-name">Tỏa sáng</span>
           </div>
-          <div class="bar-bg"><div id="hud-pulse-bar" class="bar-fill"></div></div>
+          <div class="bar-bg">
+            <div id="hud-pulse-bar" class="bar-fill"></div>
+          </div>
           <span id="hud-pulse-text" class="mini">Cần 3 đom đóm</span>
         </div>
       </div>
@@ -120,7 +138,8 @@
       <div class="modal-icon" id="modal-icon">🏮</div>
       <h1 id="modal-title">Đảo Đèn Lồng v1.0.0 — Bình Minh</h1>
       <blockquote id="modal-quote" class="ong-dang-quote">
-        “Mây ơi, gió đêm nay làm dầu trong đèn hao dần, lại thêm lũ Bóng Mực rình hút cạn những ngọn đèn yếu! Cháu hãy châm dầu và giữ cho ít nhất 60% số đèn trên đảo còn cháy sáng tới tận lúc bình minh nhé!” — <b>Ông Đăng</b>
+        “Mây ơi, gió đêm nay làm dầu trong đèn hao dần, lại thêm lũ Bóng Mực rình hút cạn những ngọn đèn yếu! Cháu hãy
+        châm dầu và giữ cho ít nhất 60% số đèn trên đảo còn cháy sáng tới tận lúc bình minh nhé!” — <b>Ông Đăng</b>
       </blockquote>
       <p id="modal-desc">
         Chọn đêm trong chiến dịch 3 đêm hoặc bắt đầu từ <b>Đêm 1: Đảo Bến</b>.
@@ -158,7 +177,8 @@
         <button id="btn-play" class="btn-primary">Bắt đầu Đêm 1</button>
         <button id="btn-open-leaderboard" class="btn-secondary">🏆 Bảng xếp hạng</button>
         <button id="btn-open-settings-menu" class="btn-secondary">⚙ Cài đặt & Đổi phím</button>
-        <button id="btn-run-bench-ui" class="btn-secondary" title="Chạy cảnh Benchmark chuẩn 1280x720 (200 Bóng Mực, 100 Đom đóm)">⏱ Benchmark 3D</button>
+        <button id="btn-run-bench-ui" class="btn-secondary"
+          title="Chạy cảnh Benchmark chuẩn 1280x720 (200 Bóng Mực, 100 Đom đóm)">⏱ Benchmark 3D</button>
         <button id="btn-back-menu" class="btn-secondary hidden">🏠 Về Menu</button>
       </div>
     </div>
@@ -225,11 +245,13 @@
       <div class="acc-toggles">
         <label class="cb-label" for="chk-colorblind">
           <input id="chk-colorblind" type="checkbox" />
-          <span><b>Bảng màu dễ phân biệt (Mù màu):</b> Mắt/viền Bóng Mực <code>#00B3FF</code>, cảnh báo <code>#FFFFFF</code> kèm <code>⚠</code></span>
+          <span><b>Bảng màu dễ phân biệt (Mù màu):</b> Mắt/viền Bóng Mực <code>#00B3FF</code>, cảnh báo
+            <code>#FFFFFF</code> kèm <code>⚠</code></span>
         </label>
         <label class="cb-label" for="chk-subtitles">
           <input id="chk-subtitles" type="checkbox" checked />
-          <span><b>Phụ đề & chỉ báo hình ảnh:</b> Hiện phụ đề + mũi tên mép màn hình khi Bóng Mực sinh ra, gió sắp thổi, 10s cuối, đèn <code>fuel &lt; 30</code></span>
+          <span><b>Phụ đề & chỉ báo hình ảnh:</b> Hiện phụ đề + mũi tên mép màn hình khi Bóng Mực sinh ra, gió sắp thổi,
+            10s cuối, đèn <code>fuel &lt; 30</code></span>
         </label>
         <label class="cb-label" for="chk-reduced-motion">
           <input id="chk-reduced-motion" type="checkbox" />
@@ -246,7 +268,8 @@
           <span><b>Đổi phím điều khiển</b> (Nhấn vào ô phím rồi bấm phím mới)</span>
           <button id="btn-reset-keys" class="btn-secondary btn-sm">↺ Khôi phục mặc định</button>
         </div>
-        <div id="kb-conflict-msg" class="kb-conflict hidden">⚠ Phát hiện trùng phím! Hãy gán mỗi hành động một phím riêng biệt.</div>
+        <div id="kb-conflict-msg" class="kb-conflict hidden">⚠ Phát hiện trùng phím! Hãy gán mỗi hành động một phím
+          riêng biệt.</div>
         <div id="keybind-list" class="keybind-list"></div>
       </div>
 
@@ -259,4 +282,5 @@
   <script src="vendor/three.min.js"></script>
   <script src="game.js"></script>
 </body>
+
 </html>
