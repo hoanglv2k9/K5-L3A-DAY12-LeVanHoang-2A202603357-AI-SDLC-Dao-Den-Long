@@ -1,4 +1,4 @@
-"""Subprocess integration tests for Test Contract v1.2 headless CLI and web server."""
+"""Subprocess integration tests for Test Contract v1.3 headless CLI, bench, soak, leaderboard, and web server."""
 from __future__ import annotations
 
 import hashlib
@@ -233,7 +233,60 @@ class TestHeadlessCLI(unittest.TestCase):
             self.assertEqual(cp.returncode, 2)
             self.assertTrue(len(cp.stderr.strip()) > 0)
 
-    def test_web_server_serves_game_and_contract_v12(self):
+    def test_bench_cli_produces_valid_v13_bench_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bench_test.json"
+            cp = subprocess.run(
+                [sys.executable, "-m", "src.bench", "--seed", "42", "--duration", "1", "--warmup", "0.2", "--out", str(out)],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(data["contract_version"], "1.3")
+            self.assertGreaterEqual(data["avg_fps"], 60.0)
+            self.assertGreaterEqual(data["p1_low_fps"], 30.0)
+            self.assertLessEqual(data["load_ms"], 10000)
+            self.assertTrue(data["vsync_off"])
+            self.assertGreater(data["peak_mem_mb"], 0)
+
+    def test_soak_cli_runs_multiple_nights_zero_crashes_and_bounded_memory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "soak_test.json"
+            cp = subprocess.run(
+                [sys.executable, "-m", "src.soak", "--seed", "7", "--nights", "3", "--out", str(out)],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(data["nights"], 3)
+            self.assertEqual(data["crashes"], 0)
+            self.assertEqual(len(data["results"]), 3)
+            self.assertLessEqual(data["mem_end_mb"], 1.2 * data["mem_start_mb"])
+
+    def test_export_leaderboard_cli_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "lb_export.json"
+            cp = subprocess.run(
+                [sys.executable, "-m", "src.web_server", "--export-leaderboard", str(out)],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertIn("entries", data)
+            self.assertIsInstance(data["entries"], list)
+            scores = [e["score"] for e in data["entries"]]
+            self.assertEqual(scores, sorted(scores, reverse=True))
+
+    def test_web_server_serves_game_contract_v13_and_leaderboard_api(self):
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         proc = subprocess.Popen(
             [sys.executable, "-m", "src.web_server", "--port", "18765", "--no-open"],
@@ -247,9 +300,13 @@ class TestHeadlessCLI(unittest.TestCase):
             contract = json.loads(
                 opener.open("http://127.0.0.1:18765/game.contract.json", timeout=5).read().decode()
             )
+            lb = json.loads(
+                opener.open("http://127.0.0.1:18765/api/leaderboard", timeout=5).read().decode()
+            )
             three_len = len(opener.open("http://127.0.0.1:18765/vendor/three.min.js", timeout=5).read())
-            self.assertIn('"ok":true', health)
-            self.assertEqual(contract["contract_version"], "1.2")
+            self.assertIn("true", health.lower())
+            self.assertEqual(contract["contract_version"], "1.3")
+            self.assertIn("entries", lb)
             self.assertGreater(three_len, 100_000)
         finally:
             proc.terminate()

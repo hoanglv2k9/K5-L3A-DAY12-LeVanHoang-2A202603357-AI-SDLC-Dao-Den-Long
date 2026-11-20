@@ -1,11 +1,20 @@
-"""Unit tests for GameEngine and Test Contract v1.2 rules (Nights 1, 2, 3 · Đèn cạn dầu)."""
+"""Unit tests for GameEngine and Test Contract v1.3 rules (Nights 1, 2, 3 · Đèn cạn dầu · Bình minh v1.0.0)."""
 from __future__ import annotations
 
 import math
+import tempfile
 import unittest
+from pathlib import Path
 
+from src.bench import build_benchmark_engine, compute_benchmark_metrics
 from src.core.contract import load_contract
 from src.core.engine import GameEngine, dist_xz
+from src.leaderboard import (
+    add_leaderboard_entry,
+    export_leaderboard,
+    load_leaderboard,
+    validate_player_name,
+)
 
 
 class TestGameEngineContract(unittest.TestCase):
@@ -13,8 +22,10 @@ class TestGameEngineContract(unittest.TestCase):
         self.contract = load_contract()
         self.tuning = self.contract["tuning"]
 
-    def test_tick0_snapshot_v12_and_default_lanterns_all_nights(self):
-        self.assertEqual(self.contract["contract_version"], "1.2")
+    def test_tick0_snapshot_v13_and_default_lanterns_all_nights(self):
+        self.assertEqual(self.contract["contract_version"], "1.3")
+        self.assertIn("bench_cmd", self.contract)
+        self.assertIn("soak_cmd", self.contract)
 
         eng1 = GameEngine(seed=1, night=1, contract=self.contract)
         snap1 = eng1.snapshot()
@@ -140,14 +151,13 @@ class TestGameEngineContract(unittest.TestCase):
             "shades": [],
             "lanterns": [
                 {"id": "L1", "pos": [0, 0, 1.5], "lit": False, "deposited": 0},
-                {"id": "L2", "pos": [23.8, 0, 7.7], "lit": True},  # Preset lit -> must not count!
+                {"id": "L2", "pos": [23.8, 0, 7.7], "lit": True},
             ],
         }
         eng = GameEngine(seed=1, night=1, contract=self.contract, scenario=sc)
         self.assertEqual(eng.player.successful_lights, 0)
         self.assertEqual(eng.player_capacity(), 10)
 
-        # Light L1 -> successful_lights becomes 1, capacity becomes 12, and on next tick player can carry 12
         evs = eng.step({"interact": True})
         self.assertTrue(any(e["name"] == "lantern_lit" and e["data"] == {"lantern_id": "L1", "relight": False} for e in evs))
         self.assertEqual(eng.player.successful_lights, 1)
@@ -156,7 +166,6 @@ class TestGameEngineContract(unittest.TestCase):
         eng.step({"interact": False})
         self.assertEqual(eng.player.carried, 12)
 
-        # Cap at 20 when successful_lights >= 5
         eng.player.successful_lights = 6
         self.assertEqual(eng.player_capacity(), 20)
 
@@ -171,23 +180,18 @@ class TestGameEngineContract(unittest.TestCase):
             "lanterns": [
                 {"id": "L1", "pos": [0, 0, 1.2], "lit": True, "fuel": 100.0},
                 {"id": "L2", "pos": [0, 0, 1.5], "lit": True, "fuel": 75.0},
-                {"id": "L3", "pos": [0, 0, 25.0], "lit": True, "fuel": 0.05},  # 3 fuel_ticks
+                {"id": "L3", "pos": [0, 0, 25.0], "lit": True, "fuel": 0.05},
             ],
         }
         eng = GameEngine(seed=1, night=1, contract=self.contract, scenario=sc)
-
-        # Tick 1: fuel decays by 1/60 before Step 5 interact; L1 has 5999 ticks (needs 1 mote to top up to 100)
-        # Wait: to test full-fuel lantern skipped at Step 5, set L1 to 6001 before step or test L2 refuel:
-        eng.lanterns[0].fuel_ticks = 6001  # After Step 2 (-1), L1 is at 6000 (full!) -> must be skipped in Step 5!
+        eng.lanterns[0].fuel_ticks = 6001
         evs1 = eng.step({"interact": True})
         refuels = [e for e in evs1 if e["name"] == "refuel"]
         self.assertEqual(len(refuels), 1)
-        # L2 was 75.0 (4500 ticks) -> 4499 at Step 2 -> missing 1501 ticks -> ceil(1501/600) = 3 motes -> 4499 + 1800 = 6000 (100.0)
         self.assertEqual(refuels[0]["data"], {"lantern_id": "L2", "amount": 3, "fuel": 100.0})
         self.assertEqual(eng.player.carried, 5)
-        self.assertEqual(eng.score, 3 * 5)  # +5 per mote in Contract v1.2
+        self.assertEqual(eng.score, 3 * 5)
 
-        # Advance 2 more ticks -> L3 (started with 3 fuel_ticks) reaches 0 and turns off with lantern_out
         eng.step({"interact": False})
         evs3 = eng.step(None)
         outs = [e for e in evs3 if e["name"] == "lantern_out"]
@@ -197,7 +201,6 @@ class TestGameEngineContract(unittest.TestCase):
         self.assertTrue(eng.lanterns[2].ever_lit)
         self.assertEqual(eng.lanterns[2].deposited, 0)
 
-        # Move player near L3 and relight it: ever_lit=True -> needs only 5 motes (+5*5 + 40 = +65 points)
         eng.player.x, eng.player.z = 0.0, 24.0
         evs_relight = eng.step({"interact": True})
         lit_evs = [e for e in evs_relight if e["name"] == "lantern_lit"]
@@ -223,15 +226,12 @@ class TestGameEngineContract(unittest.TestCase):
         }
         eng = GameEngine(seed=1, night=1, contract=self.contract, scenario=sc)
 
-        # S1 starts at z=22 (3m from weak lantern L1 at z=25, fuel=25 < 30 -> no safe zone).
-        # Walk S1 until it enters <= 2.0m of L1 and transitions to "drain"
         for _ in range(25):
             eng.step(None)
             if eng.shades[0].state == "drain":
                 break
         self.assertEqual(eng.shades[0].state, "drain")
 
-        # Drain for 60 ticks -> emits fuel_drain event and subtracts (1 + 5)/60 = 6.0 fuel over 60 ticks
         drain_evs = []
         for _ in range(60):
             evs = eng.step(None)
@@ -240,19 +240,14 @@ class TestGameEngineContract(unittest.TestCase):
         self.assertEqual(drain_evs[0]["data"]["lantern_id"], "L1")
         self.assertEqual(drain_evs[0]["data"]["shade_id"], "S1")
 
-        # Place player within 3.5m of S1 (while S1 is in "drain") and trigger Light Pulse on the next tick:
-        # Step 7 (Pulse) executes before Step 8 (Move Shades), so S1 is hit while in "drain" -> +15 points!
         eng.player.x, eng.player.z = 0.0, 20.0
         evs_pulse = eng.step({"pulse": True})
         self.assertTrue(any(e["name"] == "pulse" for e in evs_pulse))
         self.assertEqual(eng.shades[0].state, "stunned")
         self.assertEqual(eng.score, 15)
 
-        # When 120-tick stun finishes, S1 must return to "wander" (even though player is < 12m away)
         for _ in range(119):
             eng.step({"pulse": False})
-        # On tick 120 of stun, state_ticks_left hits 0 at Step 2 and transitions to "wander" at Step 8
-        # Move L1 fuel to >= 30 first so S1 doesn't re-enter drain on the same tick
         eng.lanterns[0].fuel_ticks = 30 * 60
         eng.step({"pulse": False})
         self.assertEqual(eng.shades[0].state, "wander")
@@ -277,14 +272,12 @@ class TestGameEngineContract(unittest.TestCase):
             "time_left_s": 1.0,
         }
         eng = GameEngine(seed=1, night=1, contract=self.contract, scenario=sc)
-        # Tick 1: light L1 -> all 5 lanterns are now lit, but game MUST remain "playing"!
         evs1 = eng.step({"interact": True})
         names1 = [e["name"] for e in evs1]
         self.assertIn("lantern_lit", names1)
         self.assertNotIn("game_over", names1)
         self.assertEqual(eng.state, "playing")
 
-        # Advance remaining 59 ticks to reach dawn (tick 60, time_left_s == 0) -> wins with dawn_survived!
         last_evs = []
         for _ in range(59):
             last_evs = eng.step({"interact": False})
@@ -293,7 +286,6 @@ class TestGameEngineContract(unittest.TestCase):
         self.assertEqual(len(go), 1)
         self.assertEqual(go[0]["data"], {"result": "won", "reason": "dawn_survived"})
 
-        # Conversely, if only 2/5 lanterns are lit at dawn (below ceil(0.6 * 5) = 3) -> loses with reason "dawn"
         sc_lose = {
             "random_motes": False,
             "random_shades": False,
@@ -455,6 +447,60 @@ class TestGameEngineContract(unittest.TestCase):
                 break
         self.assertEqual(eng3.player.y, 6.0)
         self.assertLessEqual(math.hypot(eng3.player.x, eng3.player.z), 8.0)
+
+    def test_leaderboard_validation_top10_sorting_and_tiebreak(self):
+        """Ticket-04 Section 3: 3-12 char name, top 10, score desc, ties keep earlier entry first."""
+        self.assertEqual(validate_player_name("May_123"), "May_123")
+        self.assertEqual(validate_player_name("Hoàng_Lê"), "Hoàng_Lê")
+        with self.assertRaises(ValueError):
+            validate_player_name("ab")  # too short (< 3)
+        with self.assertRaises(ValueError):
+            validate_player_name("abcdefghijklmn")  # too long (> 12)
+        with self.assertRaises(ValueError):
+            validate_player_name("bad name!")  # space/symbol
+
+        with tempfile.TemporaryDirectory() as tmp:
+            lb_file = Path(tmp) / "lb.json"
+            for i in range(12):
+                add_leaderboard_entry(
+                    name=f"Player_{i:02d}",
+                    score=100 * (i // 2),
+                    nights_won=i % 4,
+                    seed=42 + i,
+                    achieved_at=f"2026-11-20T16:{i:02d}:00+07:00",
+                    path=lb_file,
+                )
+            data = load_leaderboard(lb_file)
+            entries = data["entries"]
+            self.assertEqual(len(entries), 10)
+            # Highest score is 500 (i=10 and i=11); i=10 achieved first so Player_10 must be #1
+            self.assertEqual(entries[0]["name"], "Player_10")
+            self.assertEqual(entries[0]["score"], 500)
+            self.assertEqual(entries[1]["name"], "Player_11")
+            self.assertEqual(entries[1]["score"], 500)
+
+            out_export = Path(tmp) / "exported.json"
+            export_leaderboard(out_export, source_path=lb_file)
+            self.assertTrue(out_export.is_file())
+
+    def test_benchmark_scene_setup_and_metrics_formulas(self):
+        """Ticket-04 Section 1: 200 wander Shades, 100 Motes, L1-L3 lit with fuel=100, exact FPS formulas."""
+        eng = build_benchmark_engine(42)
+        self.assertEqual(len(eng.shades), 200)
+        self.assertTrue(all(s.state == "wander" for s in eng.shades))
+        self.assertEqual(len(eng.motes), 100)
+        lit_ids = [l.id for l in eng.lanterns if l.lit]
+        self.assertEqual(lit_ids, ["L1", "L2", "L3"])
+        self.assertTrue(all(l.fuel_ticks == 6000 for l in eng.lanterns[:3]))
+
+        # Check exact formulas on synthetic 100 frames (99 frames at 4.0ms, 1 frame at 10.0ms -> sum=406ms)
+        dts = [4.0] * 99 + [10.0]
+        metrics = compute_benchmark_metrics(dts, load_ms=120.0, peak_mem_mb=32.5)
+        self.assertEqual(metrics["contract_version"], "1.3")
+        self.assertEqual(metrics["frames"], 100)
+        self.assertEqual(metrics["avg_fps"], round(1000.0 * 100 / 406.0, 1))
+        self.assertEqual(metrics["p1_low_fps"], 100.0)  # k=1 -> worst=10.0ms -> 1000/10 = 100.0
+        self.assertEqual(metrics["frame_ms_p95"], 4.0)
 
 
 if __name__ == "__main__":

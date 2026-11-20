@@ -1,13 +1,14 @@
-"""Single-command verification gate & proof generator for Đảo Đèn Lồng (Contract v1.2).
+"""Single-command verification gate & proof generator for Đảo Đèn Lồng (Contract v1.3).
 
 Usage:
-    python3 scripts/verify_all.py [--phase 3] [--no-write-proof]
+    python3 scripts/verify_all.py [--phase 4] [--no-write-proof]
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -34,14 +35,14 @@ def run_headless_case(args: list[str]) -> subprocess.CompletedProcess:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Verify contract, unit tests, scenarios, determinism, perf.")
-    parser.add_argument("--phase", type=int, default=3, help="Phase number for proof directory")
+    parser = argparse.ArgumentParser(description="Verify contract, unit tests, scenarios, determinism, perf, bench, soak.")
+    parser.add_argument("--phase", type=int, default=4, help="Phase number for proof directory")
     parser.add_argument("--no-write-proof", action="store_true", help="Do not write docs/proof/phase-N/")
     args = parser.parse_args(argv)
 
     t0 = time.perf_counter()
     report_lines: list[str] = [
-        f"# Verification Proof — Phase {args.phase} (Test Contract v1.2)",
+        f"# Verification Proof — Phase {args.phase} (Test Contract v1.3 · Release v1.0.0)",
         f"- Timestamp (UTC): `{datetime.now(timezone.utc).isoformat()}`",
         f"- Python: `{sys.version.split()[0]}`",
         "",
@@ -50,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     # 1. Validate game.contract.json
     contract = load_contract()
     report_lines.append(
-        f"## 1. Contract Check\n- `game.contract.json`: **PASS** (`contract_version={contract['contract_version']}`, `team={contract['team']}`)\n"
+        f"## 1. Contract Check\n- `game.contract.json`: **PASS** (`contract_version={contract['contract_version']}`, `team={contract['team']}`, `bench_cmd={contract.get('bench_cmd')}`, `soak_cmd={contract.get('soak_cmd')}`)\n"
     )
 
     # 2. Run all unittest tests
@@ -163,12 +164,43 @@ def main(argv: list[str] | None = None) -> int:
         if bad_out.exists():
             bad_out.unlink()
 
+        # Verify committed bench.json & soak.json thresholds (Contract v1.3)
+        bench_path = REPO_ROOT / "bench.json"
+        soak_path = REPO_ROOT / "soak.json"
+        if bench_path.is_file() and soak_path.is_file():
+            bench_data = json.loads(bench_path.read_text(encoding="utf-8"))
+            soak_data = json.loads(soak_path.read_text(encoding="utf-8"))
+            if (
+                bench_data.get("avg_fps", 0) < 60.0
+                or bench_data.get("p1_low_fps", 0) < 30.0
+                or bench_data.get("load_ms", 99999) > 10000
+            ):
+                print(f"bench.json failed threshold: {bench_data}", file=sys.stderr)
+                return 1
+            if (
+                soak_data.get("crashes", 1) != 0
+                or soak_data.get("mem_end_mb", 999) > 1.2 * soak_data.get("mem_start_mb", 1)
+            ):
+                print(f"soak.json failed threshold: {soak_data}", file=sys.stderr)
+                return 1
+            if not args.no_write_proof:
+                shutil.copyfile(bench_path, out_dir / "bench.json")
+                shutil.copyfile(soak_path, out_dir / "soak.json")
+
         elapsed = round(time.perf_counter() - t0, 2)
-        report_lines.append("\n## 4. Determinism, Performance & Negative Contract Check")
+        report_lines.append("\n## 4. Determinism, Performance, Benchmark & Soak Check")
         report_lines.append(f"- Run 1 SHA-256 (`seed=2026, night=3, 600 ticks`): `{h1}`")
         report_lines.append(f"- Run 2 SHA-256 (`seed=2026, night=3, 600 ticks`): `{h2}`")
         report_lines.append("- Byte-for-byte match: **PASS**")
         report_lines.append(f"- 21,600-tick performance benchmark (`Night 3`): **`{perf_s}s`** (budget `<= 30.0s`) — **PASS**")
+        if bench_path.is_file():
+            report_lines.append(
+                f"- `bench.json` (`--seed 42 --duration 30`): `avg_fps={bench_data['avg_fps']}` (`>=60`), `p1_low_fps={bench_data['p1_low_fps']}` (`>=30`), `frame_ms_p95={bench_data['frame_ms_p95']}ms`, `load_ms={bench_data['load_ms']}ms` (`<=10000`), `peak_mem_mb={bench_data['peak_mem_mb']}MB` — **PASS**"
+            )
+        if soak_path.is_file():
+            report_lines.append(
+                f"- `soak.json` (`--seed 7 --nights 10`): `crashes={soak_data['crashes']}` (`=0`), `mem_start_mb={soak_data['mem_start_mb']}MB`, `mem_end_mb={soak_data['mem_end_mb']}MB` (`<= 1.2 * mem_start_mb`), `duration_s={soak_data['duration_s']}s` — **PASS**"
+            )
         report_lines.append(f"- Invalid inputs (`bad_inputs.json`) exit code: **`{bad_cp.returncode}`** (stderr: `{bad_cp.stderr.strip()}`)")
         report_lines.append(f"- Total verification elapsed: `{elapsed}s`")
 
