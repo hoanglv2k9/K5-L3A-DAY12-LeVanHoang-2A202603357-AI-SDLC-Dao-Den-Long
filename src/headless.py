@@ -1,9 +1,10 @@
-"""Headless CLI runner conforming to Test Contract v1.1 (Nights 1, 2, 3).
+"""Headless CLI runner conforming to Test Contract v1.3 (Nights 1, 2, 3).
 
 Usage:
     python3 -m src.headless --seed <int> --night <1|2|3> [--scenario <file.json>]
         [--inputs <file.json>] --ticks <int> --out <file.jsonl>
         [--snapshot-every <int>]
+    python3 -m src.headless --export-leaderboard <out.json>
 """
 from __future__ import annotations
 
@@ -19,24 +20,31 @@ from src.core.contract import (
     parse_scenario_file,
 )
 from src.core.engine import GameEngine
+from src.leaderboard import export_leaderboard
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python3 -m src.headless",
-        description="Đảo Đèn Lồng headless simulation (Test Contract v1.1)",
+        description="Đảo Đèn Lồng headless simulation (Test Contract v1.3)",
     )
-    parser.add_argument("--seed", type=int, required=True, help="Deterministic PRNG seed")
-    parser.add_argument("--night", type=int, required=True, help="Night number (1, 2, or 3)")
+    parser.add_argument("--seed", type=int, default=None, help="Deterministic PRNG seed")
+    parser.add_argument("--night", type=int, default=None, help="Night number (1, 2, or 3)")
     parser.add_argument("--scenario", type=str, default=None, help="Optional scenario JSON file")
     parser.add_argument("--inputs", type=str, default=None, help="Optional inputs JSON file")
-    parser.add_argument("--ticks", type=int, required=True, help="Max ticks (60 ticks/s)")
-    parser.add_argument("--out", type=str, required=True, help="Output JSONL file path")
+    parser.add_argument("--ticks", type=int, default=None, help="Max ticks (60 ticks/s)")
+    parser.add_argument("--out", type=str, default=None, help="Output JSONL file path")
     parser.add_argument(
         "--snapshot-every",
         type=int,
         default=60,
         help="Emit snapshot every N ticks starting at tick 0 (default: 60)",
+    )
+    parser.add_argument(
+        "--export-leaderboard",
+        type=str,
+        default=None,
+        help="Export top-10 local leaderboard to JSON file and exit",
     )
     return parser
 
@@ -48,8 +56,15 @@ def run_headless(argv: list[str] | None = None) -> int:
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 2
 
+    if args.export_leaderboard:
+        export_leaderboard(args.export_leaderboard)
+        return 0
+
+    if args.seed is None or args.night is None or args.ticks is None or args.out is None:
+        print("Error: --seed, --night, --ticks, and --out are required", file=sys.stderr)
+        return 2
     if args.night not in (1, 2, 3):
-        print(f"Error: unsupported --night {args.night} (Contract v1.1 supports 1, 2, 3)", file=sys.stderr)
+        print(f"Error: unsupported --night {args.night} (supports 1, 2, 3)", file=sys.stderr)
         return 2
     if args.ticks < 0:
         print("Error: --ticks must be >= 0", file=sys.stderr)
@@ -77,7 +92,6 @@ def run_headless(argv: list[str] | None = None) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     lines: list[str] = []
-    # Tick 0 snapshot: after scenario setup, before any input
     lines.append(json.dumps(engine.snapshot(), separators=(",", ":")))
 
     for k in range(args.ticks):

@@ -81,6 +81,10 @@ def load_contract(path: Path | str | None = None) -> dict[str, Any]:
 
     if not isinstance(data, dict):
         raise ContractFormatError("game.contract.json root must be an object")
+    runtime = data.get("runtime", {}) if isinstance(data.get("runtime"), dict) else {}
+    for cmd_key in ("bench_cmd", "soak_cmd"):
+        if cmd_key not in data and cmd_key not in runtime:
+            raise ContractFormatError(f"game.contract.json missing '{cmd_key}'")
     tuning = data.get("tuning")
     if not isinstance(tuning, dict):
         raise ContractFormatError("game.contract.json missing 'tuning' object")

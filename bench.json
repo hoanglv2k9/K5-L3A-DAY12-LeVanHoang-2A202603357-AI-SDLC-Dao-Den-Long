@@ -1,0 +1,12 @@
+{
+  "contract_version": "1.3",
+  "avg_fps": 137.1,
+  "p1_low_fps": 63.0,
+  "frame_ms_p95": 8.86,
+  "frames": 4114,
+  "load_ms": 3,
+  "peak_mem_mb": 24.1,
+  "vsync_off": true,
+  "renderer": "Three.js r149 WebGL (1280x720) + Python 3.13 Deterministic Scene Pipeline",
+  "os": "Windows 11 (AMD64)"
+}

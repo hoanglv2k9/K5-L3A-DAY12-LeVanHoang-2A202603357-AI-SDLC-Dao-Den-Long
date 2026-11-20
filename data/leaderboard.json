@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "name": "LeVanHoang",
+      "score": 2480,
+      "nights_won": 3,
+      "achieved_at": "2026-11-20T16:10:00+07:00",
+      "seed": 42
+    },
+    {
+      "name": "May_DaoChuong",
+      "score": 1640,
+      "nights_won": 2,
+      "achieved_at": "2026-11-20T16:15:00+07:00",
+      "seed": 22
+    },
+    {
+      "name": "Ong_Dang",
+      "score": 820,
+      "nights_won": 1,
+      "achieved_at": "2026-11-20T16:20:00+07:00",
+      "seed": 7
+    }
+  ]
+}
