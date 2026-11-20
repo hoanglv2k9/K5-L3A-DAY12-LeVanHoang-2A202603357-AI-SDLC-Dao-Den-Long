@@ -1,7 +1,7 @@
-"""Single-command verification gate & proof generator for Đảo Đèn Lồng (Contract v1.1).
+"""Single-command verification gate & proof generator for Đảo Đèn Lồng (Contract v1.2).
 
 Usage:
-    python3 scripts/verify_all.py [--phase 2] [--no-write-proof]
+    python3 scripts/verify_all.py [--phase 3] [--no-write-proof]
 """
 from __future__ import annotations
 
@@ -35,13 +35,13 @@ def run_headless_case(args: list[str]) -> subprocess.CompletedProcess:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verify contract, unit tests, scenarios, determinism, perf.")
-    parser.add_argument("--phase", type=int, default=2, help="Phase number for proof directory")
+    parser.add_argument("--phase", type=int, default=3, help="Phase number for proof directory")
     parser.add_argument("--no-write-proof", action="store_true", help="Do not write docs/proof/phase-N/")
     args = parser.parse_args(argv)
 
     t0 = time.perf_counter()
     report_lines: list[str] = [
-        f"# Verification Proof — Phase {args.phase} (Test Contract v1.1)",
+        f"# Verification Proof — Phase {args.phase} (Test Contract v1.2)",
         f"- Timestamp (UTC): `{datetime.now(timezone.utc).isoformat()}`",
         f"- Python: `{sys.version.split()[0]}`",
         "",
@@ -82,8 +82,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         cases = [
-            ("win", ["--seed", "42", "--night", "1", "--scenario", str(SCENARIOS_DIR / "win_scenario.json"),
-                     "--inputs", str(SCENARIOS_DIR / "win_inputs.json"), "--ticks", "300", "--snapshot-every", "60"]),
+            ("win_dawn_survived", ["--seed", "42", "--night", "1", "--scenario", str(SCENARIOS_DIR / "win_scenario.json"),
+                                   "--inputs", str(SCENARIOS_DIR / "win_inputs.json"), "--ticks", "240", "--snapshot-every", "60"]),
+            ("phase3_fuel_drain_relight", ["--seed", "303", "--night", "1",
+                                           "--scenario", str(SCENARIOS_DIR / "phase3_fuel_drain_relight_scenario.json"),
+                                           "--inputs", str(SCENARIOS_DIR / "phase3_fuel_drain_relight_inputs.json"),
+                                           "--ticks", "160", "--snapshot-every", "40"]),
             ("pulse_stun", ["--seed", "7", "--night", "1", "--scenario", str(SCENARIOS_DIR / "pulse_scenario.json"),
                             "--inputs", str(SCENARIOS_DIR / "pulse_inputs.json"), "--ticks", "60", "--snapshot-every", "30"]),
             ("safe_zone", ["--seed", "9", "--night", "1", "--scenario", str(SCENARIOS_DIR / "safe_zone_scenario.json"),
@@ -132,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Determinism FAILED: {h1} != {h2}", file=sys.stderr)
             return 1
 
-        # Performance benchmark: 21,600 ticks (360s full Night 3) must complete in <= 30.0s
+        # Performance benchmark: 21,600 ticks must complete in <= 30.0s
         perf_out = out_dir / "perf_21600_night3.jsonl"
         t_perf0 = time.perf_counter()
         perf_cp = run_headless_case([
@@ -164,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         report_lines.append(f"- Run 1 SHA-256 (`seed=2026, night=3, 600 ticks`): `{h1}`")
         report_lines.append(f"- Run 2 SHA-256 (`seed=2026, night=3, 600 ticks`): `{h2}`")
         report_lines.append("- Byte-for-byte match: **PASS**")
-        report_lines.append(f"- 21,600-tick performance benchmark (`Night 3, 360s`): **`{perf_s}s`** (budget `<= 30.0s`) — **PASS**")
+        report_lines.append(f"- 21,600-tick performance benchmark (`Night 3`): **`{perf_s}s`** (budget `<= 30.0s`) — **PASS**")
         report_lines.append(f"- Invalid inputs (`bad_inputs.json`) exit code: **`{bad_cp.returncode}`** (stderr: `{bad_cp.stderr.strip()}`)")
         report_lines.append(f"- Total verification elapsed: `{elapsed}s`")
 

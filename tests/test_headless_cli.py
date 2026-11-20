@@ -1,4 +1,4 @@
-"""Subprocess integration tests for Test Contract v1.1 headless CLI and web server."""
+"""Subprocess integration tests for Test Contract v1.2 headless CLI and web server."""
 from __future__ import annotations
 
 import hashlib
@@ -31,7 +31,8 @@ def parse_jsonl(path: Path) -> list[dict]:
 
 
 class TestHeadlessCLI(unittest.TestCase):
-    def test_win_scenario_full_flow(self):
+    def test_win_dawn_survived_scenario_full_flow(self):
+        """[UPDATED v1.1 -> v1.2] Verifies lighting 3/5 lanterns and surviving until dawn yields dawn_survived."""
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "win.jsonl"
             cp = run_cli([
@@ -39,7 +40,7 @@ class TestHeadlessCLI(unittest.TestCase):
                 "--night", "1",
                 "--scenario", str(SCENARIOS / "win_scenario.json"),
                 "--inputs", str(SCENARIOS / "win_inputs.json"),
-                "--ticks", "300",
+                "--ticks", "240",
                 "--out", str(out),
                 "--snapshot-every", "60",
             ])
@@ -48,16 +49,49 @@ class TestHeadlessCLI(unittest.TestCase):
             self.assertEqual(rows[0]["type"], "snapshot")
             self.assertEqual(rows[0]["tick"], 0)
             self.assertEqual(rows[0]["night"], 1)
+            self.assertIn("capacity", rows[0]["player"])
+            self.assertIn("fuel", rows[0]["lanterns"][0])
             self.assertEqual(rows[-1]["type"], "end")
             self.assertEqual(rows[-1]["state"], "won")
             self.assertGreater(rows[-1]["score"], 0)
 
-            event_names = [r["name"] for r in rows if r["type"] == "event"]
+            events = [r for r in rows if r["type"] == "event"]
+            event_names = [r["name"] for r in events]
             self.assertIn("night_start", event_names)
             self.assertEqual(event_names.count("mote_picked"), 4)
             self.assertIn("deposit", event_names)
             self.assertIn("lantern_lit", event_names)
-            self.assertIn("game_over", event_names)
+            go = [r for r in events if r["name"] == "game_over"][-1]
+            self.assertEqual(go["data"], {"result": "won", "reason": "dawn_survived"})
+
+    def test_phase3_fuel_drain_refuel_relight_and_lantern_out_scenario(self):
+        """Verifies Contract v1.2 events: refuel, lantern_lit(relight=true), fuel_drain, lantern_out, pulse on drain."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "phase3.jsonl"
+            cp = run_cli([
+                "--seed", "303",
+                "--night", "1",
+                "--scenario", str(SCENARIOS / "phase3_fuel_drain_relight_scenario.json"),
+                "--inputs", str(SCENARIOS / "phase3_fuel_drain_relight_inputs.json"),
+                "--ticks", "160",
+                "--out", str(out),
+                "--snapshot-every", "40",
+            ])
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            rows = parse_jsonl(out)
+            events = [r for r in rows if r["type"] == "event"]
+            names = [r["name"] for r in events]
+            self.assertIn("pulse", names)
+            self.assertIn("lantern_lit", names)
+            self.assertIn("refuel", names)
+            self.assertIn("fuel_drain", names)
+            self.assertIn("lantern_out", names)
+
+            lit_ev = [r for r in events if r["name"] == "lantern_lit"][0]
+            self.assertEqual(lit_ev["data"], {"lantern_id": "L3", "relight": True})
+
+            out_ev = [r for r in events if r["name"] == "lantern_out"][0]
+            self.assertEqual(out_ev["data"], {"lantern_id": "L1"})
 
     def test_pulse_scenario_stuns_shade(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -199,7 +233,7 @@ class TestHeadlessCLI(unittest.TestCase):
             self.assertEqual(cp.returncode, 2)
             self.assertTrue(len(cp.stderr.strip()) > 0)
 
-    def test_web_server_serves_game_and_contract_v11(self):
+    def test_web_server_serves_game_and_contract_v12(self):
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         proc = subprocess.Popen(
             [sys.executable, "-m", "src.web_server", "--port", "18765", "--no-open"],
@@ -215,7 +249,7 @@ class TestHeadlessCLI(unittest.TestCase):
             )
             three_len = len(opener.open("http://127.0.0.1:18765/vendor/three.min.js", timeout=5).read())
             self.assertIn('"ok":true', health)
-            self.assertEqual(contract["contract_version"], "1.1")
+            self.assertEqual(contract["contract_version"], "1.2")
             self.assertGreater(three_len, 100_000)
         finally:
             proc.terminate()
