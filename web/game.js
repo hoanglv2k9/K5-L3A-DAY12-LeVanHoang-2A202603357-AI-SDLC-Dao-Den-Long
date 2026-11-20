@@ -1,4 +1,4 @@
-/* Đảo Đèn Lồng — 3D Third-Person WebGL Game (Phase 2: Ba Hòn Đảo · Contract v1.1)
+/* Đảo Đèn Lồng — 3D Third-Person WebGL Game (Phase 3: Đèn Cạn Dầu · Contract v1.2)
  * Loads tuning dynamically from /game.contract.json (Single Source of Truth).
  */
 (() => {
@@ -25,7 +25,7 @@
   const WIND_DUR_TICKS = 300;     // 5s gust
   const WIND_PUSH_MPS = 2.0;
 
-  // Standardized Palette (Ticket-02 Part 3.8)
+  // Standardized Palette (Ticket-02 Part 3.8 + Ticket-03 Part 6 Colorblind Mode)
   const PALETTE = {
     skyNight: 0x0e1430,
     fogNight: 0x1b2350,
@@ -40,12 +40,14 @@
     pulseLight: 0xffe58a,
     shadeBody: 0x120a1a,
     shadeEye: 0x7a3cff,
+    shadeEyeCB: 0x00b3ff,
     shadeStun: 0x3a3450,
     mayCloth: 0xe8e2d0,
     charmRed: 0xc8102e,
     gold: 0xf2c14e,
     drifter: 0x8fa3b8,
     danger: 0xff5a5f,
+    dangerCB: 0xffffff,
     text: 0xf5f1e6,
   };
 
@@ -53,33 +55,40 @@
     1: {
       name: "Đêm 1 · Đảo Bến",
       title: "Đêm 1 — Đảo Bến",
-      quote: "“Mây ơi, sương mực vừa nuốt mất 5 ngọn đèn của Đảo Bến. Hãy gom đom đóm quanh bến gỗ và thắp sáng chúng trước khi trời rạng nhé!” — Ông Đăng",
-      desc: "Hòn đảo tròn bán kính 40m giữa biển mây. Gom 10 đom đóm cho mỗi Đèn Lồng Lớn (5 đèn · 300 giây).",
+      quote: "“Mây ơi, gió đêm nay làm dầu trong đèn hao dần (1 dầu/s), lại thêm lũ Bóng Mực rình hút dầu những đèn yếu (< 30). Hãy châm dầu và giữ ít nhất 3/5 đèn sáng tới tận bình minh nhé!” — Ông Đăng",
+      desc: "Hòn đảo tròn bán kính 40m. Giữ tối thiểu 3/5 Đèn Lồng Lớn đang cháy sáng khi hết 240 giây (Thắp đầu: 10 đom đóm · Thắp lại: 5 · Châm dầu: +10 dầu/đom đóm).",
     },
     2: {
       name: "Đêm 2 · Đảo Cau",
       title: "Đêm 2 — Đảo Cau",
-      quote: "“Cây cầu tre nối hai bờ Đảo Cau đã hiện ra trong sương. Coi chừng lũ Gió Lạc thích cướp đom đóm, và hãy tận dụng Bệ Nhảy cùng Bùa Gió ở giữa cầu!” — Ông Đăng",
-      desc: "Hai hòn đảo nối bằng cầu tre và 2 Bệ Nhảy Gió. Xuất hiện Gió Lạc cướp đom đóm và Bùa Gió tăng tốc (6 đèn · 330 giây).",
+      quote: "“Hai bờ Đảo Cau đều phải giữ lửa! Mỗi lần thắp đèn thành công sức chứa của cháu tăng thêm +2 (tối đa 20). Hãy dùng Bệ Nhảy và Bùa Gió để kịp châm dầu cả hai đảo!” — Ông Đăng",
+      desc: "Hai hòn đảo nối bằng cầu tre và 2 Bệ Nhảy Gió. Giữ tối thiểu 4/6 Đèn Lồng Lớn còn cháy sáng khi hết 270 giây.",
     },
     3: {
       name: "Đêm 3 · Đảo Chuông",
       title: "Đêm 3 — Đảo Chuông",
-      quote: "“Đỉnh Tháp Chuông ở tầng cao nhất đang chờ ngọn lửa cuối cùng. Cẩn thận những cơn gió mạnh mỗi 30 giây trên vách đá 3 tầng!” — Ông Đăng",
-      desc: "Đảo 3 tầng cao (0m · 3m · 6m) với 2 dốc đá, Bệ Nhảy lên Tháp Chuông và Gió Mạnh định kỳ (7 đèn · 360 giây).",
+      quote: "“Đỉnh Tháp Chuông và 3 tầng đá đang đón thử thách cuối cùng. Đừng để Bóng Mực hút cạn dầu khi Gió Mạnh thổi qua! Giữ ít nhất 5/7 đèn sáng tới bình minh nhé!” — Ông Đăng",
+      desc: "Đảo 3 tầng cao (0m · 3m · 6m) với 2 dốc đá, Bệ Nhảy lên Tháp Chuông và Gió Mạnh định kỳ. Giữ tối thiểu 5/7 Đèn Lồng Lớn còn sáng khi hết 300 giây.",
     },
   };
 
-  // Persistent Settings in localStorage
-  const SETTINGS_KEY = "dao_den_long_settings_v11";
-  const settings = { volume: 0.8, mouseSens: 1.0 };
+  // Persistent Settings in localStorage (Volume, Mouse Sensitivity, Colorblind Mode)
+  const SETTINGS_KEY = "dao_den_long_settings_v12";
+  const settings = { volume: 0.8, mouseSens: 1.0, colorblind: false };
   try {
-    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || localStorage.getItem("dao_den_long_settings_v11") || "{}");
     if (typeof saved.volume === "number") settings.volume = Math.max(0, Math.min(1, saved.volume));
     if (typeof saved.mouseSens === "number") settings.mouseSens = Math.max(0.3, Math.min(2.5, saved.mouseSens));
+    if (typeof saved.colorblind === "boolean") settings.colorblind = saved.colorblind;
   } catch (_) {}
 
+  function applyColorblindClass() {
+    document.body.classList.toggle("colorblind-mode", !!settings.colorblind);
+  }
+  applyColorblindClass();
+
   function saveSettings() {
+    applyColorblindClass();
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
   }
 
@@ -131,7 +140,9 @@
     dash() { this.tone(280, 0.12, "sine", 0.07); this.tone(420, 0.14, "triangle", 0.06, 0.03); }
     jumpPad() { this.tone(320, 0.18, "sine", 0.09); this.tone(640, 0.28, "triangle", 0.08, 0.06); }
     deposit() { this.tone(440, 0.14, "triangle", 0.08); this.tone(554, 0.18, "sine", 0.07, 0.05); }
+    refuel() { this.tone(520, 0.14, "sine", 0.08); this.tone(690, 0.2, "triangle", 0.07, 0.05); }
     lanternLit() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.tone(f, 0.42, "sine", 0.09, i * 0.08)); }
+    lanternOut() { [392, 311, 233].forEach((f, i) => this.tone(f, 0.28, "sawtooth", 0.07, i * 0.08)); }
     pulse() { this.tone(330, 0.32, "triangle", 0.11); this.tone(660, 0.38, "sine", 0.08, 0.04); }
     steal() { this.tone(480, 0.14, "sawtooth", 0.07); this.tone(320, 0.18, "sawtooth", 0.07, 0.06); }
     wind() { this.tone(190, 0.45, "sine", 0.05); this.tone(240, 0.45, "triangle", 0.04, 0.12); }
@@ -149,6 +160,8 @@
   const hudCharmTime = document.getElementById("hud-charm-time");
   const hudWindBadge = document.getElementById("hud-wind-badge");
   const hudWindText = document.getElementById("hud-wind-text");
+  const hudFuelAlert = document.getElementById("hud-fuel-alert");
+  const hudFuelAlertText = document.getElementById("hud-fuel-alert-text");
   const hudTime = document.getElementById("hud-time");
   const hudLanterns = document.getElementById("hud-lanterns");
   const hudScore = document.getElementById("hud-score");
@@ -186,14 +199,15 @@
   const lblVolume = document.getElementById("lbl-volume");
   const sliderSens = document.getElementById("slider-sens");
   const lblSens = document.getElementById("lbl-sens");
+  const chkColorblind = document.getElementById("chk-colorblind");
   const btnCloseSettings = document.getElementById("btn-close-settings");
 
   const btnPauseHud = document.getElementById("btn-pause-hud");
   const btnMute = document.getElementById("btn-mute");
 
-  // Initialize 10-slot mote bar
+  // Initialize up to 20 progressive mote slots
   const moteSlotEls = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     const d = document.createElement("div");
     d.className = "mote-slot";
     hudMoteSlots.appendChild(d);
@@ -204,7 +218,7 @@
   function showToast(msg) {
     toastEl.textContent = msg;
     toastEl.classList.remove("hidden");
-    toastTimer = 2.4;
+    toastTimer = 2.5;
   }
 
   // Three.js Scene Setup
@@ -273,7 +287,6 @@
   windLeavesGroup.visible = false;
   scene.add(windLeavesGroup);
 
-  // Helper to build circular points matching src/core/engine.py
   function circlePoints(cx, cz, y, radius, anglesDeg) {
     return anglesDeg.map((deg) => {
       const rad = (deg * Math.PI) / 180;
@@ -285,7 +298,6 @@
     });
   }
 
-  // Build Mây (cloak & nón lá in #E8E2D0 + mini lantern)
   function buildPlayerMesh() {
     const g = new THREE.Group();
     const cloak = new THREE.Mesh(
@@ -342,6 +354,9 @@
     return g;
   }
 
+  // Build Lantern with:
+  // - 3D Fuel bar floating above cap
+  // - Colorblind-friendly shape cues (Ticket-03 Part 6): unlit lanterns are squashed 20% (scale.y=0.8) and show torn paper marks
   function buildLanternMesh(safeRadius) {
     const g = new THREE.Group();
     const post = new THREE.Mesh(
@@ -368,6 +383,35 @@
     const core = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.48, 1.05, 8), coreMat);
     core.position.y = 3.05;
     g.add(core);
+
+    // Torn paper scars on unlit lantern (non-color distinction for Colorblind accessibility)
+    const tearGroup = new THREE.Group();
+    const tearMat = new THREE.MeshBasicMaterial({ color: 0x181522, side: THREE.DoubleSide });
+    for (let i = 0; i < 4; i++) {
+      const tear = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.09), tearMat);
+      const a = (i * Math.PI) / 2;
+      tear.position.set(Math.cos(a) * 0.53, 3.05, Math.sin(a) * 0.53);
+      tear.rotation.y = -a + Math.PI / 2;
+      tear.rotation.z = 0.45;
+      tearGroup.add(tear);
+    }
+    g.add(tearGroup);
+
+    // 3D Fuel bar above lantern cap
+    const fuelBarGroup = new THREE.Group();
+    fuelBarGroup.position.y = 4.45;
+    const fbBg = new THREE.Mesh(
+      new THREE.BoxGeometry(1.44, 0.2, 0.08),
+      new THREE.MeshBasicMaterial({ color: 0x0e1430 })
+    );
+    fuelBarGroup.add(fbBg);
+
+    const fbFillMat = new THREE.MeshBasicMaterial({ color: PALETTE.gold });
+    const fbFill = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.13, 0.1), fbFillMat);
+    fbFill.position.z = 0.01;
+    fuelBarGroup.add(fbFill);
+    fuelBarGroup.visible = false;
+    g.add(fuelBarGroup);
 
     const light = new THREE.PointLight(PALETTE.lanternLit, 0.0, 26);
     light.position.y = 3.3;
@@ -399,7 +443,7 @@
     beam.position.y = 14.5;
     g.add(beam);
 
-    g.userData = { coreMat, light, ring, beam };
+    g.userData = { core, coreMat, cap, tearGroup, fuelBarGroup, fbFill, fbFillMat, light, ring, beam };
     return g;
   }
 
@@ -416,14 +460,34 @@
     body.castShadow = true;
     g.add(body);
 
-    const eyeMat = new THREE.MeshBasicMaterial({ color: PALETTE.shadeEye });
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 8), eyeMat);
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 8), eyeMat);
+    const eyeColor = settings.colorblind ? PALETTE.shadeEyeCB : PALETTE.shadeEye;
+    const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeMat);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeMat);
     eyeL.position.set(-0.16, 1.05, 0.42);
     eyeR.position.set(0.16, 1.05, 0.42);
     g.add(eyeL, eyeR);
 
-    g.userData = { bodyMat, eyeMat };
+    // Rim ring for clear silhouette & colorblind contrast
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.55, 0.035, 8, 20),
+      eyeMat
+    );
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.25;
+    g.add(rim);
+
+    // Drain tether beam (shown when Shade is in "drain" state)
+    const drainBeam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.12, 2.0, 8),
+      new THREE.MeshBasicMaterial({ color: eyeColor, transparent: true, opacity: 0.75 })
+    );
+    drainBeam.rotation.x = Math.PI / 2;
+    drainBeam.position.set(0, 1.1, 1.0);
+    drainBeam.visible = false;
+    g.add(drainBeam);
+
+    g.userData = { bodyMat, eyeMat, drainBeam };
     return g;
   }
 
@@ -506,7 +570,6 @@
     return g;
   }
 
-  // Build 3D island environment for Night 1, 2, or 3
   function buildIslandEnvironment(night) {
     while (worldGroup.children.length > 0) {
       worldGroup.remove(worldGroup.children[0]);
@@ -550,20 +613,17 @@
         sand.receiveShadow = true;
         worldGroup.add(sand);
       }
-      // Bamboo bridge x in [26, 44], z in [-2, 2]
       const bridge = new THREE.Mesh(new THREE.BoxGeometry(18.4, 0.32, 4.0), woodMat);
       bridge.position.set(35.0, -0.14, 0);
       bridge.receiveShadow = true;
       worldGroup.add(bridge);
 
-      // 2 Jump pads at (20,0,18) and (50,0,-18)
       const jp1 = buildJumpPadMesh();
       jp1.position.set(20, 0, 18);
       const jp2 = buildJumpPadMesh();
       jp2.position.set(50, 0, -18);
       worldGroup.add(jp1, jp2);
     } else {
-      // Night 3: Đảo Chuông (r=45m, 3 tiers + 2 ramps + Jump pad + Bell Tower)
       const t0 = new THREE.Mesh(new THREE.CylinderGeometry(43.8, 44.5, 1.8, 56), grassMat);
       t0.position.y = -0.9;
       t0.receiveShadow = true;
@@ -573,7 +633,6 @@
       sand.position.y = -1.15;
       worldGroup.add(sand);
 
-      // Tier 1: half-annulus 12 <= r <= 24, z > 0 at Y=3
       const shape1 = new THREE.Shape();
       shape1.absarc(0, 0, 24.0, 0, Math.PI, false);
       shape1.lineTo(-12.0, 0);
@@ -587,7 +646,6 @@
       tier1Mesh.castShadow = true;
       worldGroup.add(tier1Mesh);
 
-      // 2 Ramps at 30° and 150° from r=30 (Y=0) to r=24 (Y=3), width 3m
       for (const deg of [30, 150]) {
         const rad = (deg * Math.PI) / 180;
         const ux = Math.cos(rad);
@@ -601,19 +659,16 @@
         worldGroup.add(ramp);
       }
 
-      // Tier 2: disc r <= 8m at Y=6
       const t2 = new THREE.Mesh(new THREE.CylinderGeometry(8.0, 8.2, 6.0, 32), grassMat);
       t2.position.y = 3.0;
       t2.receiveShadow = true;
       t2.castShadow = true;
       worldGroup.add(t2);
 
-      // Jump Pad on Tier 1 at (0, 3, 13)
       const jp3 = buildJumpPadMesh();
       jp3.position.set(0, 3.0, 13.0);
       worldGroup.add(jp3);
 
-      // Bell Tower at (0, 6, 0) (r=2m, h=8m)
       const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 2.0, 8.0, 16), woodMat);
       tower.position.set(0, 10.0, 0);
       tower.castShadow = true;
@@ -634,7 +689,6 @@
       worldGroup.add(bell);
     }
 
-    // Cloud sea ring around island(s)
     const cxCenter = night === 2 ? 35 : 0;
     const cloudRadius = night === 2 ? 78 : 54;
     for (let i = 0; i < 40; i++) {
@@ -650,7 +704,6 @@
   const playerMesh = buildPlayerMesh();
   scene.add(playerMesh);
 
-  // Pulse wave visual ring
   const pulseRing = new THREE.Mesh(
     new THREE.RingGeometry(0.2, 0.55, 36),
     new THREE.MeshBasicMaterial({
@@ -664,7 +717,7 @@
   scene.add(pulseRing);
   let pulseAnim = 0;
 
-  // Input Handling (WASD, Space Jump, Shift Dash, E/F Interact, Q/RightClick Pulse, Esc/P Pause)
+  // Input Handling
   const keys = {};
   const edge = { jump: false, dash: false, interact: false, pulse: false };
   let camYawDeg = 0;
@@ -719,7 +772,7 @@
   let game = null;
   let selectedNight = 1;
   let campaignScores = { 1: 0, 2: 0, 3: 0 };
-  let modalMode = "menu"; // "menu" | "intro" | "playing" | "paused" | "won" | "lost" | "dawn"
+  let modalMode = "menu";
   let lastCountdownSec = -1;
 
   function clearEntities() {
@@ -795,6 +848,19 @@
     return circlePoints(0, 0, 0, 43.0, Array.from({ length: 16 }, (_, i) => i * 22.5));
   }
 
+  function playerCapacity() {
+    if (!game || !contract) return 10;
+    const base = contract.tuning.carry_capacity || 10;
+    const maxCap = contract.tuning.capacity_max || 20;
+    return Math.min(maxCap, base + 2 * game.player.successfulLights);
+  }
+
+  function requiredLitForWin() {
+    if (!game || !contract) return 3;
+    const ratio = contract.tuning.win_ratio || 0.6;
+    return Math.ceil(ratio * game.lanterns.length - 1e-9);
+  }
+
   function initNight(night, seed = 42 + night) {
     selectedNight = night;
     clearEntities();
@@ -808,7 +874,15 @@
       const mesh = buildLanternMesh(t.safe_radius);
       mesh.position.set(x, y, z);
       entitiesGroup.add(mesh);
-      return { id, x, y, z, deposited: 0, lit: false, mesh };
+      return {
+        id, x, y, z,
+        deposited: 0,
+        lit: false,
+        fuelTicks: 0,      // integer 1/60 fuel units (100 fuel = 6000)
+        everLit: false,
+        relitCount: 0,
+        mesh,
+      };
     });
 
     const moteSpawnPoints = buildMoteSpawnPoints(night);
@@ -848,6 +922,7 @@
         grounded: true,
         flames: t.flames,
         carried: 0,
+        successfulLights: 0,
         invulnTicks: 0,
         dashCdTicks: 0,
         dashTicksLeft: 0,
@@ -872,7 +947,6 @@
       nextDrifterSeq: 1,
     };
 
-    // Spawn 20 initial motes at distinct spawn points
     const indices = moteSpawnPoints.map((_, i) => i);
     for (let i = indices.length - 1; i > 0; i--) {
       const j = Math.floor(rng.random() * (i + 1));
@@ -912,10 +986,11 @@
   function spawnScheduledShade() {
     if (game.shades.length >= maxShadesForNight(game.night)) return;
     const safeR = contract.tuning.safe_radius;
+    const lowTicks = Math.round((contract.tuning.low_fuel_threshold || 30) * 60);
     const pl = game.player;
     const valid = game.shadeSpawnPoints.filter((pt) => {
       if (Math.hypot(pt[0] - pl.x, pt[2] - pl.z) < 15.0) return false;
-      if (game.lanterns.some((l) => l.lit && Math.hypot(pt[0] - l.x, pt[2] - l.z) < safeR)) return false;
+      if (game.lanterns.some((l) => l.lit && l.fuelTicks >= lowTicks && Math.hypot(pt[0] - l.x, pt[2] - l.z) < safeR)) return false;
       if (game.shades.some((s) => Math.hypot(pt[0] - s.x, pt[2] - s.z) < 1.0)) return false;
       return true;
     });
@@ -934,6 +1009,8 @@
       recoilDirX: 1, recoilDirZ: 0,
       inSafeZone: false,
       wanderAngle: game.rng.uniform(0, Math.PI * 2),
+      targetLanternId: null,
+      drainTicks: 0,
       mesh,
     });
   }
@@ -958,7 +1035,6 @@
     });
   }
 
-  // Night 1, 2, 3 Terrain & Cliff helpers (matching src/core/engine.py)
   function rampHeightNight3(x, z) {
     for (const deg of [30, 150]) {
       const rad = (deg * Math.PI) / 180;
@@ -973,9 +1049,7 @@
   }
 
   function surfaceHeightAt(night, x, z, curY) {
-    if (night === 1) {
-      return Math.hypot(x, z) <= 40.0 ? 0.0 : null;
-    }
+    if (night === 1) return Math.hypot(x, z) <= 40.0 ? 0.0 : null;
     if (night === 2) {
       if (Math.hypot(x, z) <= 28.0) return 0.0;
       if (Math.hypot(x - 70.0, z) <= 28.0) return 0.0;
@@ -994,7 +1068,7 @@
   function isBlockedByCliffOrTower(night, oldX, oldZ, newX, newZ, y) {
     if (night !== 3) return false;
     const rNew = Math.hypot(newX, newZ);
-    if (y >= 5.5 && rNew < 2.0) return true; // Bell Tower
+    if (y >= 5.5 && rNew < 2.0) return true;
     if (y < 5.6 && rNew < 8.0 && Math.hypot(oldX, oldZ) >= 8.0) return true;
     if (y < 2.6 && rNew > 12.0 && rNew < 24.0 && newZ > 0) {
       if (rampHeightNight3(newX, newZ) === null && rampHeightNight3(oldX, oldZ) === null) {
@@ -1013,16 +1087,21 @@
     }
   }
 
-  // Mandatory 12-Step Simulation Tick (Contract v1.1)
+  // Mandatory 12-Step Simulation Tick (Contract v1.2)
   function stepSimulation() {
     if (!game || game.state !== "playing") return;
     const t = contract.tuning;
     const pl = game.player;
+    const fuelMaxTicks = Math.round((t.fuel_max || 100) * 60);
+    const lowFuelTicks = Math.round((t.low_fuel_threshold || 30) * 60);
+    const fuelPerMoteTicks = Math.round((t.fuel_per_mote || 10) * 60);
+    const decayPerTick = Math.round(t.fuel_decay_per_s || 1.0);
+    const drainPerTick = Math.round(t.drain_per_s || 5.0);
 
     game.tick += 1;
     game.simTick += 1;
 
-    // Step 2: Decrement counters
+    // Step 2: Decrement counters + lantern fuel decay & Shade drain
     game.timeLeftS = Math.max(0, game.initialTimeS - game.simTick / 60);
     if (pl.dashCdTicks > 0) pl.dashCdTicks -= 1;
     if (pl.pulseCdTicks > 0) pl.pulseCdTicks -= 1;
@@ -1057,6 +1136,26 @@
       }
     }
 
+    // Subtract lantern fuel (natural decay + Shade drain) and turn off lanterns with fuel <= 0
+    for (const lan of game.lanterns) {
+      if (!lan.lit) continue;
+      let drainCount = 0;
+      for (const sh of game.shades) {
+        if (sh.state === "drain" && Math.hypot(sh.x - lan.x, sh.z - lan.z) <= 2.0 + 1e-6 && lan.fuelTicks < lowFuelTicks) {
+          drainCount += 1;
+        }
+      }
+      lan.fuelTicks = Math.max(0, lan.fuelTicks - decayPerTick - drainCount * drainPerTick);
+      if (lan.fuelTicks <= 0) {
+        lan.lit = false;
+        lan.fuelTicks = 0;
+        lan.deposited = 0;
+        lan.everLit = true;
+        sfx.lanternOut();
+        showToast(`🕯 Đèn Lồng ${lan.id} đã cạn dầu và tắt! (Cần ${t.relight_cost || 5} đom đóm để thắp lại)`);
+      }
+    }
+
     if (pl.fallWaitTicks > 0) {
       pl.fallWaitTicks -= 1;
       if (pl.fallWaitTicks === 0 && pl.flames > 0) {
@@ -1069,7 +1168,6 @@
       }
     }
 
-    // Night 3 Strong Wind (every 30s lasts 5s, with 2s warning)
     if (game.night === 3) {
       const mod = game.simTick % WIND_PERIOD_TICKS;
       if (game.simTick >= WIND_PERIOD_TICKS - WIND_WARN_TICKS && mod === WIND_PERIOD_TICKS - WIND_WARN_TICKS) {
@@ -1085,20 +1183,16 @@
       game.windWarn = false;
     }
 
-    // Countdown tick sound in last 10s
     const secCeil = Math.ceil(game.timeLeftS);
     if (secCeil <= 10 && secCeil > 0 && secCeil !== lastCountdownSec) {
       lastCountdownSec = secCeil;
       sfx.countdownTick();
     }
 
-    // Step 1/3: Input & Player Movement
-    if ( keys["KeyQ"] && !edge.pulse && false ) {} // Q is Pulse; camera rotates with mouse or ArrowLeft/Right
+    // Step 1/3: Input & Player Movement (Right-handed Three.js camera view: A/Left -> +X, D/Right -> -X)
     if (keys["BracketLeft"]) camYawDeg = (camYawDeg - 95 * DT) % 360;
     if (keys["BracketRight"]) camYawDeg = (camYawDeg + 95 * DT) % 360;
 
-    // In Three.js right-handed coordinates with camera looking along +Z at yaw=0,
-    // screen-left is +X (mx = +1) and screen-right is -X (mx = -1)
     let mx = 0, mz = 0;
     if (keys["KeyA"] || keys["ArrowLeft"]) mx += 1;
     if (keys["KeyD"] || keys["ArrowRight"]) mx -= 1;
@@ -1186,7 +1280,6 @@
         }
       }
 
-      // Check Jump Pads
       if (!pl.launchActive) {
         if (game.night === 2 && Math.abs(pl.y) <= 0.35) {
           for (const [px, pz, tx, tz] of [[20, 18, 70, 0], [50, -18, 0, 0]]) {
@@ -1218,7 +1311,6 @@
         }
       }
 
-      // Check Fall off island (Y < -10)
       if (pl.y < FALL_Y) {
         pl.carried = 0;
         pl.flames = Math.max(0, pl.flames - 1);
@@ -1233,10 +1325,11 @@
       }
     }
 
-    // Step 4: Pick up motes and charms
+    // Step 4: Pick up motes (up to dynamic capacity) and charms
+    const curCap = playerCapacity();
     if (pl.fallWaitTicks === 0) {
       for (const m of game.motes) {
-        if (pl.carried >= t.carry_capacity) break;
+        if (pl.carried >= curCap) break;
         if (!m.active) continue;
         if (Math.hypot(pl.x - m.x, pl.z - m.z) <= t.pickup_radius && Math.abs(pl.y - m.y) <= 1.5) {
           m.active = false;
@@ -1259,43 +1352,72 @@
       }
     }
 
-    // Step 5: Interact with lantern
+    // Step 5: Interact with lantern (deposit / relight / refuel)
     if (justInteract && pl.fallWaitTicks === 0 && pl.carried > 0) {
       const candidates = game.lanterns
-        .filter((l) => !l.lit && Math.hypot(pl.x - l.x, pl.z - l.z) <= t.interact_radius && Math.abs(pl.y - l.y) <= 2.5)
+        .filter((l) => (!l.lit || l.fuelTicks < fuelMaxTicks) && Math.hypot(pl.x - l.x, pl.z - l.z) <= t.interact_radius && Math.abs(pl.y - l.y) <= 2.5)
         .sort((a, b) => Math.hypot(pl.x - a.x, pl.z - a.z) - Math.hypot(pl.x - b.x, pl.z - b.z) || a.id.localeCompare(b.id));
       if (candidates.length > 0) {
         const target = candidates[0];
-        const needed = Math.max(0, t.lantern_cost - target.deposited);
-        const amount = Math.min(pl.carried, needed);
-        if (amount > 0) {
-          pl.carried -= amount;
-          target.deposited += amount;
-          game.score += amount * t.score.per_mote;
-          if (target.deposited >= t.lantern_cost) {
-            target.lit = true;
-            game.score += t.score.per_lantern;
-            sfx.lanternLit();
-            showToast(`🏮 Đèn Lồng ${target.id} đã bừng sáng! (+${t.score.per_lantern} điểm)`);
-          } else {
-            sfx.deposit();
-            showToast(`Đã nạp ${amount} đom đóm vào ${target.id} (${target.deposited}/${t.lantern_cost})`);
+        if (!target.lit) {
+          const reqCost = target.everLit ? (t.relight_cost || 5) : t.lantern_cost;
+          const needed = Math.max(0, reqCost - target.deposited);
+          const amount = Math.min(pl.carried, needed);
+          if (amount > 0) {
+            pl.carried -= amount;
+            target.deposited += amount;
+            game.score += amount * t.score.per_mote;
+            if (target.deposited >= reqCost) {
+              const isRelight = target.everLit;
+              target.lit = true;
+              target.fuelTicks = fuelMaxTicks;
+              target.everLit = true;
+              if (isRelight) {
+                target.relitCount += 1;
+                game.score += (t.score.per_relight || 40);
+              } else {
+                game.score += t.score.per_lantern;
+              }
+              pl.successfulLights += 1;
+              sfx.lanternLit();
+              showToast(`🏮 ${isRelight ? "Thắp lại" : "Thắp sáng"} Đèn Lồng ${target.id}! (Sức chứa tăng lên ${playerCapacity()})`);
+            } else {
+              sfx.deposit();
+              showToast(`Đã nạp ${amount} đom đóm vào ${target.id} (${target.deposited}/${reqCost})`);
+            }
+          }
+        } else {
+          // Refuel lit lantern
+          const missingTicks = Math.max(0, fuelMaxTicks - target.fuelTicks);
+          const neededMotes = Math.floor((missingTicks + fuelPerMoteTicks - 1) / fuelPerMoteTicks);
+          const used = Math.min(pl.carried, neededMotes);
+          if (used > 0) {
+            pl.carried -= used;
+            target.fuelTicks = Math.min(fuelMaxTicks, target.fuelTicks + used * fuelPerMoteTicks);
+            game.score += used * t.score.per_mote;
+            sfx.refuel();
+            showToast(`🛢 Đã châm ${used} đom đóm vào ${target.id} (Nhiên liệu: ${(target.fuelTicks / 60).toFixed(1)}/100)`);
           }
         }
       }
     }
 
-    // Step 6: Update safe zones
+    // Step 6: Update safe zones (only lit lanterns with fuel >= 30 have a safe zone)
     const safeR = t.safe_radius;
-    const litLanterns = game.lanterns.filter((l) => l.lit);
+    const safeLanterns = game.lanterns.filter((l) => l.lit && l.fuelTicks >= lowFuelTicks);
     const pushPerTick = Math.max(t.shade_speed * DT, safeR / 30.0);
     for (const sh of game.shades) {
       sh.inSafeZone = false;
-      for (const lan of litLanterns) {
+      for (const lan of safeLanterns) {
         const dx = sh.x - lan.x, dz = sh.z - lan.z;
         const d = Math.hypot(dx, dz);
         if (d < safeR) {
           sh.inSafeZone = true;
+          if (sh.state === "drain") {
+            sh.state = "wander";
+            sh.drainTicks = 0;
+            sh.targetLanternId = null;
+          }
           const ux = d > 1e-6 ? dx / d : 1, uz = d > 1e-6 ? dz / d : 0;
           const nd = Math.min(safeR, d + pushPerTick);
           sh.x = lan.x + ux * nd;
@@ -1304,7 +1426,7 @@
       }
     }
 
-    // Step 7: Light Pulse
+    // Step 7: Light Pulse (+15 score if Shade was draining, else +5)
     if (justPulse && pl.fallWaitTicks === 0) {
       if (pl.carried >= t.pulse_cost && pl.pulseCdTicks === 0) {
         pl.carried -= t.pulse_cost;
@@ -1312,19 +1434,24 @@
         const stunTicks = Math.round(t.pulse_stun_s * 60);
         const cx = pl.x, cy = pl.y + 0.8, cz = pl.z;
         let count = 0;
+        let drainCount = 0;
 
         for (const sh of game.shades) {
           const d3 = Math.hypot(cx - sh.x, cy - sh.y, cz - sh.z);
           if (d3 <= t.pulse_radius) {
+            const wasDrain = sh.state === "drain";
             sh.state = "stunned";
             sh.stateTicksLeft = stunTicks;
             sh.pushTicksLeft = PULSE_PUSH_TICKS;
+            sh.drainTicks = 0;
+            sh.targetLanternId = null;
             const dx = sh.x - pl.x, dz = sh.z - pl.z;
             const dh = Math.hypot(dx, dz);
             sh.pushDirX = dh > 1e-6 ? dx / dh : 1;
             sh.pushDirZ = dh > 1e-6 ? dz / dh : 0;
-            game.score += t.score.per_stun;
+            game.score += wasDrain ? (t.score.per_drain_stun || 15) : t.score.per_stun;
             count += 1;
+            if (wasDrain) drainCount += 1;
           }
         }
 
@@ -1352,23 +1479,22 @@
         pulseRing.position.set(pl.x, pl.y + 0.18, pl.z);
         pulseAnim = 1.0;
         sfx.pulse();
-        if (count > 0) showToast(`✨ Tỏa sáng làm choáng ${count} Bóng Mực! (+${count * t.score.per_stun} điểm)`);
+        if (count > 0) {
+          showToast(`✨ Tỏa sáng làm choáng ${count} Bóng Mực${drainCount > 0 ? ` (${drainCount} con đang hút dầu: +15đ)` : ""}!`);
+        }
       } else if (pl.carried < t.pulse_cost) {
         showToast(`Cần ít nhất ${t.pulse_cost} đom đóm để Tỏa sáng!`);
       }
     }
 
-    // Step 8: Move Shades and Drifters
+    // Step 8: Move Shades (including weak-lantern seeking & drain state) and Drifters
     const shadeSpeed = game.night === 3 ? 4.5 : t.shade_speed;
     const pushStep = t.pulse_push_m / PULSE_PUSH_TICKS;
     const recoilStep = 2.0 / SHADE_RECOIL_TICKS;
 
     for (const sh of game.shades) {
       if (sh.state === "spawning") {
-        if (sh.stateTicksLeft <= 0) {
-          const d = Math.hypot(pl.x - sh.x, pl.z - sh.z);
-          sh.state = d <= 12.0 && pl.fallWaitTicks === 0 ? "chase" : "wander";
-        }
+        if (sh.stateTicksLeft <= 0) sh.state = "wander";
         continue;
       }
       if (sh.state === "stunned") {
@@ -1381,8 +1507,7 @@
           sh.pushTicksLeft -= 1;
         }
         if (sh.stateTicksLeft <= 0) {
-          const d = Math.hypot(pl.x - sh.x, pl.z - sh.z);
-          sh.state = d <= 12.0 && pl.fallWaitTicks === 0 ? "chase" : "wander";
+          sh.state = "wander";
         }
         continue;
       }
@@ -1400,24 +1525,113 @@
       }
 
       const dPl = Math.hypot(pl.x - sh.x, pl.z - sh.z);
-      if (pl.fallWaitTicks > 0) sh.state = "wander";
-      else if (sh.state === "wander" && dPl <= 12.0) sh.state = "chase";
-      else if (sh.state === "chase" && dPl > 18.0) sh.state = "wander";
 
-      if (sh.inSafeZone) continue;
-
-      let nx = sh.x, nz = sh.z;
-      if (sh.state === "chase" && dPl > 1e-6) {
-        const stepD = Math.min(shadeSpeed * DT, dPl);
-        nx += ((pl.x - sh.x) / dPl) * stepD;
-        nz += ((pl.z - sh.z) / dPl) * stepD;
-      } else {
-        sh.wanderAngle += 0.6 * DT;
-        nx += Math.cos(sh.wanderAngle) * (shadeSpeed * 0.35 * DT);
-        nz += Math.sin(sh.wanderAngle) * (shadeSpeed * 0.35 * DT);
+      if (sh.state === "drain") {
+        if (pl.fallWaitTicks === 0 && dPl <= 6.0) {
+          sh.state = "chase";
+          sh.targetLanternId = null;
+        } else {
+          const tLan = game.lanterns.find((l) => l.id === sh.targetLanternId);
+          if (!tLan || !tLan.lit || tLan.fuelTicks >= lowFuelTicks || Math.hypot(sh.x - tLan.x, sh.z - tLan.z) > 2.0) {
+            sh.state = "wander";
+            sh.targetLanternId = null;
+          } else {
+            continue;
+          }
+        }
       }
 
-      for (const lan of litLanterns) {
+      if (sh.state === "chase") {
+        if (pl.fallWaitTicks > 0 || dPl > 18.0) {
+          sh.state = "wander";
+        } else {
+          if (sh.inSafeZone) continue;
+          let nx = sh.x, nz = sh.z;
+          if (dPl > 1e-6) {
+            const stepD = Math.min(shadeSpeed * DT, dPl);
+            nx += ((pl.x - sh.x) / dPl) * stepD;
+            nz += ((pl.z - sh.z) / dPl) * stepD;
+          }
+          for (const lan of safeLanterns) {
+            const ldx = nx - lan.x, ldz = nz - lan.z;
+            const ld = Math.hypot(ldx, ldz);
+            if (ld < safeR) {
+              const ux = ld > 1e-6 ? ldx / ld : 1, uz = ld > 1e-6 ? ldz / ld : 0;
+              nx = lan.x + ux * safeR;
+              nz = lan.z + uz * safeR;
+            }
+          }
+          if (!isBlockedByCliffOrTower(game.night, sh.x, sh.z, nx, nz, sh.y)) {
+            sh.x = nx; sh.z = nz;
+          }
+          continue;
+        }
+      }
+
+      // sh.state === "wander": prioritize nearest weak lit lantern (fuel < 30)
+      const weakLanterns = game.lanterns
+        .filter((l) => l.lit && l.fuelTicks < lowFuelTicks)
+        .sort((a, b) => Math.hypot(sh.x - a.x, sh.z - a.z) - Math.hypot(sh.x - b.x, sh.z - b.z) || a.id.localeCompare(b.id));
+
+      if (weakLanterns.length > 0) {
+        const wLan = weakLanterns[0];
+        sh.targetLanternId = wLan.id;
+        const dw = Math.hypot(sh.x - wLan.x, sh.z - wLan.z);
+        if (dw <= 2.0) {
+          sh.state = "drain";
+          continue;
+        }
+        if (sh.inSafeZone) continue;
+        const stepD = Math.min(shadeSpeed * DT, dw);
+        let nx = sh.x + ((wLan.x - sh.x) / dw) * stepD;
+        let nz = sh.z + ((wLan.z - sh.z) / dw) * stepD;
+        for (const lan of safeLanterns) {
+          const ldx = nx - lan.x, ldz = nz - lan.z;
+          const ld = Math.hypot(ldx, ldz);
+          if (ld < safeR) {
+            const ux = ld > 1e-6 ? ldx / ld : 1, uz = ld > 1e-6 ? ldz / ld : 0;
+            nx = lan.x + ux * safeR;
+            nz = lan.z + uz * safeR;
+          }
+        }
+        if (!isBlockedByCliffOrTower(game.night, sh.x, sh.z, nx, nz, sh.y)) {
+          sh.x = nx; sh.z = nz;
+        }
+        if (Math.hypot(sh.x - wLan.x, sh.z - wLan.z) <= 2.0) {
+          sh.state = "drain";
+        }
+        continue;
+      }
+
+      // No weak lantern -> check player detection (12m) or walk toward nearest unlit lantern
+      sh.targetLanternId = null;
+      let nx = sh.x, nz = sh.z;
+      if (pl.fallWaitTicks === 0 && dPl <= 12.0) {
+        sh.state = "chase";
+        if (sh.inSafeZone) continue;
+        if (dPl > 1e-6) {
+          const stepD = Math.min(shadeSpeed * DT, dPl);
+          nx += ((pl.x - sh.x) / dPl) * stepD;
+          nz += ((pl.z - sh.z) / dPl) * stepD;
+        }
+      } else {
+        if (sh.inSafeZone) continue;
+        const unlit = game.lanterns
+          .filter((l) => !l.lit)
+          .sort((a, b) => Math.hypot(sh.x - a.x, sh.z - a.z) - Math.hypot(sh.x - b.x, sh.z - b.z) || a.id.localeCompare(b.id))[0];
+        if (unlit && Math.hypot(sh.x - unlit.x, sh.z - unlit.z) > 2.0) {
+          const du = Math.hypot(sh.x - unlit.x, sh.z - unlit.z);
+          const stepD = Math.min(shadeSpeed * 0.55 * DT, du);
+          nx += ((unlit.x - sh.x) / du) * stepD;
+          nz += ((unlit.z - sh.z) / du) * stepD;
+        } else {
+          sh.wanderAngle += 0.6 * DT;
+          nx += Math.cos(sh.wanderAngle) * (shadeSpeed * 0.35 * DT);
+          nz += Math.sin(sh.wanderAngle) * (shadeSpeed * 0.35 * DT);
+        }
+      }
+
+      for (const lan of safeLanterns) {
         const ldx = nx - lan.x, ldz = nz - lan.z;
         const ld = Math.hypot(ldx, ldz);
         if (ld < safeR) {
@@ -1493,6 +1707,7 @@
           sh.recoilDirX = dx / d; sh.recoilDirZ = dz / d;
           sh.state = "recoil";
           sh.stateTicksLeft = SHADE_RECOIL_TICKS;
+          sh.targetLanternId = null;
 
           sfx.hit();
           showToast(`💔 Bóng Mực chạm phải! Mất 1 Ngọn lửa, rơi ${dropped} đom đóm.`);
@@ -1516,26 +1731,30 @@
       spawnScheduledDrifter();
     }
 
-    // Step 11: Win / Loss check (no_flames > all_lit > dawn)
+    // Step 11: Win / Loss check (no_flames first, then Dawn Survival when timeLeftS <= 0)
     if (pl.flames <= 0) {
       game.state = "lost";
       sfx.lose();
       showEndModal("lost", "no_flames");
       return;
     }
-    if (game.lanterns.every((l) => l.lit)) {
-      game.state = "won";
-      game.score += Math.floor(game.timeLeftS) * t.score.per_second_left;
-      game.score += pl.flames * t.score.per_flame_left;
-      campaignScores[game.night] = game.score;
-      sfx.win();
-      showEndModal("won", "all_lit");
-      return;
-    }
     if (game.timeLeftS <= 0) {
-      game.state = "lost";
-      sfx.lose();
-      showEndModal("lost", "dawn");
+      const litLanterns = game.lanterns.filter((l) => l.lit);
+      if (litLanterns.length >= requiredLitForWin()) {
+        game.state = "won";
+        const perLitDawn = t.score.per_lit_lantern_dawn || 50;
+        for (const lan of litLanterns) {
+          game.score += perLitDawn + Math.floor(lan.fuelTicks / 60);
+        }
+        game.score += pl.flames * t.score.per_flame_left;
+        campaignScores[game.night] = game.score;
+        sfx.win();
+        showEndModal("won", "dawn_survived");
+      } else {
+        game.state = "lost";
+        sfx.lose();
+        showEndModal("lost", "dawn");
+      }
     }
   }
 
@@ -1544,26 +1763,51 @@
     if (!game) return;
     const t = contract.tuning;
     const pl = game.player;
+    const fuelMaxTicks = Math.round((t.fuel_max || 100) * 60);
+    const lowFuelTicks = Math.round((t.low_fuel_threshold || 30) * 60);
 
     hudFlames.textContent = "🔥".repeat(pl.flames) + "🖤".repeat(Math.max(0, t.flames - pl.flames));
     const litCount = game.lanterns.filter((l) => l.lit).length;
-    hudLanterns.textContent = `${litCount} / ${game.lanterns.length}`;
+    const reqLit = requiredLitForWin();
+    hudLanterns.textContent = `${litCount} / ${game.lanterns.length} (cần ≥ ${reqLit})`;
     hudScore.textContent = String(game.score);
 
     const mins = Math.floor(game.timeLeftS / 60);
     const secs = Math.floor(game.timeLeftS % 60);
-    hudTime.textContent = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    if (game.timeLeftS <= 30) hudTime.classList.add("danger-blink");
-    else hudTime.classList.remove("danger-blink");
-
-    // 10-slot Mote bar
-    hudCarried.textContent = `${pl.carried} / ${t.carry_capacity}`;
-    for (let i = 0; i < moteSlotEls.length; i++) {
-      if (i < pl.carried) moteSlotEls[i].classList.add("filled");
-      else moteSlotEls[i].classList.remove("filled");
+    const timeStr = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    if (game.timeLeftS <= 30) {
+      hudTime.textContent = settings.colorblind ? `⚠ ${timeStr}` : timeStr;
+      hudTime.classList.add("danger-blink");
+    } else {
+      hudTime.textContent = timeStr;
+      hudTime.classList.remove("danger-blink");
     }
 
-    // Charm & Wind status badges
+    // Low-fuel / Draining alert badge
+    const drainingLanterns = game.lanterns.filter((l) => l.lit && game.shades.some((s) => s.state === "drain" && s.targetLanternId === l.id));
+    const weakLanterns = game.lanterns.filter((l) => l.lit && l.fuelTicks < lowFuelTicks);
+    if (drainingLanterns.length > 0) {
+      hudFuelAlert.classList.remove("hidden");
+      hudFuelAlertText.textContent = `⚠ Bóng Mực đang hút dầu đèn ${drainingLanterns.map((l) => l.id).join(", ")}!`;
+    } else if (weakLanterns.length > 0) {
+      hudFuelAlert.classList.remove("hidden");
+      hudFuelAlertText.textContent = `⚠ Đèn ${weakLanterns.map((l) => `${l.id} (${(l.fuelTicks / 60).toFixed(0)}%)`).join(", ")} sắp cạn dầu!`;
+    } else {
+      hudFuelAlert.classList.add("hidden");
+    }
+
+    // Progressive Carry Capacity Mote Bar (10..20 slots)
+    const curCap = playerCapacity();
+    hudCarried.textContent = `${pl.carried} / ${curCap}`;
+    for (let i = 0; i < moteSlotEls.length; i++) {
+      if (i >= curCap) {
+        moteSlotEls[i].classList.add("hidden");
+      } else {
+        moteSlotEls[i].classList.remove("hidden");
+        moteSlotEls[i].classList.toggle("filled", i < pl.carried);
+      }
+    }
+
     if (pl.charmTicks > 0) {
       hudCharmBadge.classList.remove("hidden");
       hudCharmTime.textContent = `${(pl.charmTicks / 60).toFixed(1)}s`;
@@ -1581,7 +1825,6 @@
       hudWindBadge.classList.add("hidden");
     }
 
-    // Dash Cooldown card
     const maxDashCd = Math.round((t.dash_cooldown_s || 1.5) * 60);
     if (pl.charmTicks > 0) {
       hudDashBar.style.width = "100%";
@@ -1595,7 +1838,6 @@
       hudDashText.textContent = "Sẵn sàng (14 m/s)";
     }
 
-    // Light Pulse Cooldown card
     const maxPulseCd = Math.round(t.pulse_cooldown_s * 60);
     if (pl.pulseCdTicks > 0) {
       const ratio = 1 - pl.pulseCdTicks / maxPulseCd;
@@ -1609,12 +1851,17 @@
       hudPulseText.textContent = `Sẵn sàng (tốn ${t.pulse_cost})`;
     }
 
-    // Interaction prompt: "E — Nạp ánh sáng (x/10)"
+    // Interaction prompt for nearest eligible lantern (unlit or lit with fuel < 100)
     const nearLantern = game.lanterns
-      .filter((l) => !l.lit && Math.hypot(pl.x - l.x, pl.z - l.z) <= t.interact_radius && Math.abs(pl.y - l.y) <= 2.5)
+      .filter((l) => (!l.lit || l.fuelTicks < fuelMaxTicks) && Math.hypot(pl.x - l.x, pl.z - l.z) <= t.interact_radius && Math.abs(pl.y - l.y) <= 2.5)
       .sort((a, b) => Math.hypot(pl.x - a.x, pl.z - a.z) - Math.hypot(pl.x - b.x, pl.z - b.z) || a.id.localeCompare(b.id))[0];
     if (nearLantern) {
-      promptBanner.textContent = `E — Nạp ánh sáng vào ${nearLantern.id} (${nearLantern.deposited}/${t.lantern_cost})`;
+      if (!nearLantern.lit) {
+        const reqCost = nearLantern.everLit ? (t.relight_cost || 5) : t.lantern_cost;
+        promptBanner.textContent = `E — ${nearLantern.everLit ? "Thắp lại" : "Nạp ánh sáng"} ${nearLantern.id} (${nearLantern.deposited}/${reqCost})`;
+      } else {
+        promptBanner.textContent = `E — Châm dầu ${nearLantern.id} (Nhiên liệu: ${(nearLantern.fuelTicks / 60).toFixed(1)}/100)`;
+      }
       promptBanner.classList.remove("hidden");
     } else {
       promptBanner.classList.add("hidden");
@@ -1627,14 +1874,16 @@
       return;
     }
     const pl = game.player;
-    const unlit = game.lanterns
-      .filter((l) => !l.lit)
+    const lowFuelTicks = Math.round((contract.tuning.low_fuel_threshold || 30) * 60);
+    // Prioritize weak lit lanterns (< 30 fuel) or unlit lanterns
+    const priority = game.lanterns
+      .filter((l) => !l.lit || l.fuelTicks < lowFuelTicks)
       .sort((a, b) => Math.hypot(pl.x - a.x, pl.z - a.z) - Math.hypot(pl.x - b.x, pl.z - b.z));
-    if (!unlit.length) {
+    if (!priority.length) {
       offscreenArrow.classList.add("hidden");
       return;
     }
-    const target = unlit[0];
+    const target = priority[0];
     const v = new THREE.Vector3(target.x, target.y + 3.0, target.z);
     v.project(camera);
 
@@ -1663,15 +1912,16 @@
     offscreenArrow.style.top = `${Math.round(sy - 16)}px`;
     offscreenArrow.querySelector(".arrow-glyph").style.transform = `rotate(${Math.round((angle * 180) / Math.PI)}deg)`;
     const distM = Math.round(Math.hypot(pl.x - target.x, pl.z - target.z));
-    offscreenLabel.textContent = `${target.id} · ${distM}m`;
+    offscreenLabel.textContent = `${target.id}${target.lit ? "⚠" : ""} · ${distM}m`;
     offscreenArrow.classList.remove("hidden");
   }
 
   function sync3DVisuals(timeSec) {
     if (!game) return;
     const pl = game.player;
+    const fuelMaxTicks = Math.round((contract.tuning.fuel_max || 100) * 60);
+    const lowFuelTicks = Math.round((contract.tuning.low_fuel_threshold || 30) * 60);
 
-    // Ambient intensity formula from Ticket-02 Part 3.8: 0.15 + 0.55 * (lit / total)
     const litCount = game.lanterns.filter((l) => l.lit).length;
     hemiLight.intensity = 0.15 + 0.55 * (litCount / Math.max(1, game.lanterns.length));
 
@@ -1681,17 +1931,51 @@
       playerMesh.rotation.y = Math.atan2(pl.vx, pl.vz);
     }
 
-    // Lanterns
+    // 1 Hz slow blink wave for low-fuel lanterns (fuel < 30)
+    const blink1Hz = 0.5 + 0.5 * Math.sin(timeSec * Math.PI * 2.0);
+
+    // Lanterns (with fuel bar, 1 Hz low-fuel blink, and Colorblind-safe 20% squash + torn paper on unlit lanterns)
     for (const lan of game.lanterns) {
       const ud = lan.mesh.userData;
-      const ratio = lan.deposited / contract.tuning.lantern_cost;
       if (lan.lit) {
+        const fuelRatio = Math.max(0, Math.min(1, lan.fuelTicks / fuelMaxTicks));
+        const isLow = lan.fuelTicks < lowFuelTicks;
+
+        // Full upright height and intact paper when lit
+        ud.core.scale.set(1.0, 1.0, 1.0);
+        ud.core.position.y = 3.05;
+        ud.cap.position.y = 3.75;
+        ud.tearGroup.visible = false;
+
+        // Fuel bar above lantern
+        ud.fuelBarGroup.visible = true;
+        ud.fuelBarGroup.lookAt(camera.position);
+        ud.fbFill.scale.x = Math.max(0.03, fuelRatio);
+        ud.fbFill.position.x = -0.68 * (1 - fuelRatio);
+        if (isLow) {
+          ud.fbFillMat.color.setHex(settings.colorblind ? PALETTE.dangerCB : PALETTE.danger);
+          ud.fuelBarGroup.visible = blink1Hz > 0.25;
+        } else {
+          ud.fbFillMat.color.setHex(PALETTE.gold);
+        }
+
         ud.coreMat.color.setHex(PALETTE.lanternLit);
-        ud.coreMat.emissiveIntensity = 1.9 + 0.25 * Math.sin(timeSec * 3.5);
-        ud.light.intensity = 2.6 + 0.3 * Math.sin(timeSec * 4.0);
-        ud.ring.material.opacity = 0.42 + 0.1 * Math.sin(timeSec * 2.5);
-        ud.beam.material.opacity = 0.14;
+        const blinkFactor = isLow ? (0.35 + 0.65 * blink1Hz) : 1.0;
+        ud.coreMat.emissiveIntensity = (1.1 + 0.9 * fuelRatio) * blinkFactor;
+        ud.light.intensity = (1.4 + 1.3 * fuelRatio) * blinkFactor;
+        // Safe zone ring disappears when fuel < 30!
+        ud.ring.material.opacity = isLow ? 0.0 : (0.42 + 0.1 * Math.sin(timeSec * 2.5));
+        ud.beam.material.opacity = isLow ? 0.05 * blinkFactor : 0.14;
       } else {
+        // Ticket-03 Part 6: Unlit lantern is squashed by 20% vertically and shows torn paper scars
+        ud.core.scale.set(1.06, 0.8, 1.06);
+        ud.core.position.y = 2.94;
+        ud.cap.position.y = 3.54;
+        ud.tearGroup.visible = true;
+        ud.fuelBarGroup.visible = false;
+
+        const reqCost = lan.everLit ? (contract.tuning.relight_cost || 5) : contract.tuning.lantern_cost;
+        const ratio = lan.deposited / Math.max(1, reqCost);
         ud.coreMat.color.setHex(PALETTE.lanternUnlit);
         ud.coreMat.emissiveIntensity = 0.08 + ratio * 0.65;
         ud.light.intensity = ratio * 0.9;
@@ -1700,44 +1984,54 @@
       }
     }
 
-    // Motes
     for (let i = 0; i < game.motes.length; i++) {
       const m = game.motes[i];
       if (!m.active) continue;
       m.mesh.position.y = m.y + 0.55 + 0.18 * Math.sin(timeSec * 3.2 + i);
     }
 
-    // Charms
     for (const c of game.charms) {
       if (!c.available) continue;
       c.mesh.rotation.y = timeSec * 2.2;
       c.mesh.position.y = c.y + 0.15 * Math.sin(timeSec * 3.0);
     }
 
-    // Shades
+    // Shades (including Colorblind #00B3FF eye/rim color and drain beam)
+    const activeEyeColor = settings.colorblind ? PALETTE.shadeEyeCB : PALETTE.shadeEye;
     for (let i = 0; i < game.shades.length; i++) {
       const sh = game.shades[i];
       sh.mesh.position.set(sh.x, sh.y + 0.08 * Math.sin(timeSec * 4 + i), sh.z);
-      const dx = pl.x - sh.x, dz = pl.z - sh.z;
-      if (Math.hypot(dx, dz) > 0.1) sh.mesh.rotation.y = Math.atan2(dx, dz);
       const ud = sh.mesh.userData;
-      if (sh.state === "stunned") {
-        ud.bodyMat.color.setHex(PALETTE.shadeStun);
-        ud.eyeMat.color.setHex(PALETTE.gold);
-      } else {
+
+      if (sh.state === "drain") {
+        const tLan = game.lanterns.find((l) => l.id === sh.targetLanternId);
+        if (tLan) {
+          sh.mesh.rotation.y = Math.atan2(tLan.x - sh.x, tLan.z - sh.z);
+        }
+        ud.drainBeam.visible = true;
+        ud.drainBeam.material.color.setHex(activeEyeColor);
         ud.bodyMat.color.setHex(PALETTE.shadeBody);
-        ud.eyeMat.color.setHex(PALETTE.shadeEye);
+        ud.eyeMat.color.setHex(activeEyeColor);
+      } else {
+        ud.drainBeam.visible = false;
+        const dx = pl.x - sh.x, dz = pl.z - sh.z;
+        if (Math.hypot(dx, dz) > 0.1) sh.mesh.rotation.y = Math.atan2(dx, dz);
+        if (sh.state === "stunned") {
+          ud.bodyMat.color.setHex(PALETTE.shadeStun);
+          ud.eyeMat.color.setHex(PALETTE.gold);
+        } else {
+          ud.bodyMat.color.setHex(PALETTE.shadeBody);
+          ud.eyeMat.color.setHex(activeEyeColor);
+        }
       }
     }
 
-    // Drifters
     for (const dr of game.drifters) {
       if (dr.state === "removed") continue;
       dr.mesh.position.set(dr.x, dr.y + 0.15 * Math.sin(timeSec * 5), dr.z);
       dr.mesh.userData.swirl.rotation.z = timeSec * 6.0;
     }
 
-    // Wind leaves on Night 3
     if (game.windActive || game.windWarn) {
       windLeavesGroup.visible = true;
       windLeavesGroup.position.set(pl.x, pl.y, pl.z);
@@ -1754,7 +2048,6 @@
       windLeavesGroup.visible = false;
     }
 
-    // Pulse Ring
     if (pulseAnim > 0) {
       pulseAnim = Math.max(0, pulseAnim - DT * 2.4);
       const scale = 1 + (1 - pulseAnim) * contract.tuning.pulse_radius * 2.0;
@@ -1764,7 +2057,6 @@
       pulseRing.material.opacity = 0;
     }
 
-    // Third-person camera follow
     const camDist = 11.8;
     const camHeight = 6.2;
     const rad = (camYawDeg * Math.PI) / 180;
@@ -1825,18 +2117,18 @@
 
   function showEndModal(result, reason) {
     const litCount = game.lanterns.filter((l) => l.lit).length;
+    const reqLit = requiredLitForWin();
     nightSelector.classList.add("hidden");
     btnOpenSettingsMenu.classList.add("hidden");
     btnBackMenu.classList.remove("hidden");
     modalStats.classList.remove("hidden");
 
     if (result === "won" && game.night === 3) {
-      // Dawn Finale Screen (Màn Bình Minh)
       modalMode = "dawn";
       const totalCampaign = (campaignScores[1] || 0) + (campaignScores[2] || 0) + (campaignScores[3] || 0);
       modalIcon.textContent = "🌅";
       modalTitle.textContent = "Bình Minh Trên Ba Hòn Đảo!";
-      modalQuote.textContent = "“Cảm ơn cháu, Mây! Từ Đảo Bến, Đảo Cau tới đỉnh Tháp Chuông Đảo Chuông, cả vùng biển mây đã rực sáng đón bình minh!” — Ông Đăng";
+      modalQuote.textContent = "“Cảm ơn cháu, Mây! Cháu đã kiên cường giữ lửa và châm dầu suốt cả 3 đêm để đón bình minh rực rỡ trên khắp biển mây!” — Ông Đăng";
       modalDesc.textContent = `Chiến dịch 3 đêm hoàn tất! Điểm Đêm 3: ${game.score} · Tổng điểm chiến dịch: ${totalCampaign}.`;
       modalStats.innerHTML = `
         <div class="modal-stat"><div class="k">Đêm 1 · Đảo Bến</div><div class="v">${campaignScores[1] || "—"}</div></div>
@@ -1846,27 +2138,27 @@
       btnPlay.textContent = "Chơi lại Chiến dịch (Đêm 1)";
     } else if (result === "won") {
       modalMode = "won";
-      modalIcon.textContent = "✨";
-      modalTitle.textContent = `Hoàn thành ${NIGHT_INFO[game.night].name}!`;
-      modalQuote.textContent = "“Giỏi lắm Mây! Ngọn đèn trên đảo này đã vững vàng, hãy chuẩn bị sang hòn đảo tiếp theo nhé!” — Ông Đăng";
-      modalDesc.textContent = `Toàn bộ ${game.lanterns.length} Đèn Lồng Lớn đã được thắp sáng trước bình minh.`;
+      modalIcon.textContent = "🌅";
+      modalTitle.textContent = `Giữ Đảo Sáng Tới Bình Minh (${NIGHT_INFO[game.night].name})!`;
+      modalQuote.textContent = "“Giỏi lắm Mây! Bình minh đã lên và những ngọn đèn cháu giữ lửa vẫn đang tỏa sáng rực rỡ!” — Ông Đăng";
+      modalDesc.textContent = `Đã duy trì ${litCount}/${game.lanterns.length} Đèn Lồng Lớn cháy sáng tới bình minh (yêu cầu ≥ ${reqLit}).`;
       modalStats.innerHTML = `
         <div class="modal-stat"><div class="k">Điểm Đêm ${game.night}</div><div class="v">${game.score}</div></div>
-        <div class="modal-stat"><div class="k">Đèn đã thắp</div><div class="v">${litCount}/${game.lanterns.length}</div></div>
-        <div class="modal-stat"><div class="k">Thời gian dư</div><div class="v">${Math.floor(game.timeLeftS)}s</div></div>
+        <div class="modal-stat"><div class="k">Đèn sáng lúc bình minh</div><div class="v">${litCount}/${game.lanterns.length}</div></div>
+        <div class="modal-stat"><div class="k">Sức chứa đạt được</div><div class="v">${playerCapacity()}</div></div>
       `;
       btnPlay.textContent = `Sang Đêm ${game.night + 1} →`;
     } else {
       modalMode = "lost";
       modalIcon.textContent = "🌑";
-      modalTitle.textContent = "Sương Mực Bao Phủ...";
-      modalQuote.textContent = "“Đừng nản lòng Mây ơi, hãy hít một hơi thật sâu rồi thắp lại từ đầu nhé!” — Ông Đăng";
+      modalTitle.textContent = "Đèn Tắt Trước Bình Minh...";
+      modalQuote.textContent = "“Đừng nản lòng Mây ơi, nhớ ưu tiên châm dầu cho các đèn dưới 30% và xua Bóng Mực đang hút dầu nhé!” — Ông Đăng";
       modalDesc.textContent = reason === "no_flames"
-        ? "Mây đã tắt hết cả 3 Ngọn lửa hộ mệnh trước khi kịp thắp sáng toàn bộ đảo."
-        : "Bình minh đã tới khi các Đèn Lồng Lớn trên đảo vẫn chưa được thắp đủ.";
+        ? "Mây đã tắt hết cả 3 Ngọn lửa hộ mệnh trước khi bình minh tới."
+        : `Khi bình minh tới, đảo chỉ còn ${litCount}/${game.lanterns.length} đèn sáng (cần ít nhất ${reqLit} đèn sáng).`;
       modalStats.innerHTML = `
         <div class="modal-stat"><div class="k">Điểm đạt được</div><div class="v">${game.score}</div></div>
-        <div class="modal-stat"><div class="k">Đèn đã thắp</div><div class="v">${litCount}/${game.lanterns.length}</div></div>
+        <div class="modal-stat"><div class="k">Đèn sáng còn lại</div><div class="v">${litCount}/${game.lanterns.length}</div></div>
         <div class="modal-stat"><div class="k">Ngọn lửa còn</div><div class="v">${game.player.flames}</div></div>
       `;
       btnPlay.textContent = `Thử lại Đêm ${game.night}`;
@@ -1897,6 +2189,7 @@
     lblVolume.textContent = `${Math.round(settings.volume * 100)}%`;
     sliderSens.value = String(settings.mouseSens.toFixed(1));
     lblSens.textContent = `${settings.mouseSens.toFixed(1)}x`;
+    chkColorblind.checked = !!settings.colorblind;
     settingsOverlay.classList.remove("hidden");
   }
 
@@ -1908,6 +2201,10 @@
   sliderSens.addEventListener("input", () => {
     settings.mouseSens = Number(sliderSens.value);
     lblSens.textContent = `${settings.mouseSens.toFixed(1)}x`;
+    saveSettings();
+  });
+  chkColorblind.addEventListener("change", () => {
+    settings.colorblind = !!chkColorblind.checked;
     saveSettings();
   });
   btnCloseSettings.addEventListener("click", () => {

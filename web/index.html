@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Đảo Đèn Lồng — Ba Hòn Đảo (Contract v1.1)</title>
+  <title>Đảo Đèn Lồng — Đèn Cạn Dầu (Contract v1.2)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="canvas-wrap"></div>
 
-  <!-- Off-screen directional indicator arrow for nearest unlit lantern -->
-  <div id="offscreen-arrow" class="offscreen-arrow hidden" title="Hướng Đèn Lồng chưa thắp gần nhất">
+  <!-- Off-screen directional indicator arrow for nearest priority lantern -->
+  <div id="offscreen-arrow" class="offscreen-arrow hidden" title="Hướng Đèn Lồng cần chú ý gần nhất">
     <span class="arrow-glyph">➤</span>
     <span id="offscreen-label" class="arrow-label">L1</span>
   </div>
 
-  <!-- Standardized HUD (Ticket-02 Part 3.7) -->
+  <!-- Standardized HUD (Ticket-02 + Ticket-03 Contract v1.2) -->
   <div id="hud">
     <div class="hud-top">
       <!-- Top-left: Flames + active buffs/warnings -->
@@ -36,19 +36,22 @@
         <div id="hud-wind-badge" class="status-badge wind-badge hidden">
           🍃 <span id="hud-wind-text">Gió mạnh sắp thổi!</span>
         </div>
+        <div id="hud-fuel-alert" class="status-badge danger-badge hidden">
+          <span id="hud-fuel-alert-text">⚠ Có đèn sắp cạn dầu (&lt; 30)!</span>
+        </div>
       </div>
 
       <!-- Top-center: Clock mm:ss -->
       <div class="hud-card clock-card">
-        <span class="label">Bình minh còn</span>
-        <span id="hud-time" class="clock-val">05:00</span>
+        <span class="label">Giữ đảo sáng tới bình minh</span>
+        <span id="hud-time" class="clock-val">04:00</span>
       </div>
 
-      <!-- Top-right: Lanterns k/n & Score -->
+      <!-- Top-right: Lanterns k/n (target >= 60%) & Score -->
       <div class="hud-card right-stats-card">
         <div class="stat">
-          <span class="label">Đèn Lồng Lớn</span>
-          <span id="hud-lanterns" class="val gold">0 / 5</span>
+          <span class="label">Đèn sáng (Cần ≥ 60%)</span>
+          <span id="hud-lanterns" class="val gold">0 / 5 (cần 3)</span>
         </div>
         <div class="stat">
           <span class="label">Điểm số</span>
@@ -61,19 +64,19 @@
       </div>
     </div>
 
-    <!-- Interaction prompt when within 2.0m of an unlit lantern -->
+    <!-- Interaction prompt when within 2.0m of an eligible lantern -->
     <div id="prompt-banner" class="prompt-banner hidden">E — Nạp ánh sáng (0/10)</div>
     <div id="toast" class="toast hidden"></div>
 
-    <!-- Bottom HUD: 10-slot Mote bar center + Dash & Pulse cooldown icons right -->
+    <!-- Bottom HUD: Progressive 10..20-slot Mote bar center + Dash & Pulse cooldown icons right -->
     <div class="hud-bottom">
       <div class="controls-hint">
-        <b>WASD</b> Di chuyển · <b>Space</b> Nhảy · <b>Shift</b> Lướt · <b>E / F</b> Nạp đèn · <b>Q / Chuột phải</b> Tỏa sáng · <b>Kéo chuột</b> Xoay camera · <b>Esc / P</b> Tạm dừng
+        <b>WASD</b> Di chuyển · <b>Space</b> Nhảy · <b>Shift</b> Lướt · <b>E / F</b> Thắp / Châm dầu · <b>Q / Chuột phải</b> Tỏa sáng · <b>Kéo chuột</b> Xoay camera · <b>Esc / P</b> Tạm dừng
       </div>
 
       <div class="hud-card mote-bar-card">
         <div class="mote-bar-header">
-          <span class="label">Đom đóm mang theo</span>
+          <span class="label">Đom đóm mang / Sức chứa</span>
           <span id="hud-carried" class="val gold">0 / 10</span>
         </div>
         <div id="hud-mote-slots" class="mote-slots"></div>
@@ -105,9 +108,9 @@
   <div id="overlay" class="overlay">
     <div class="modal">
       <div class="modal-icon" id="modal-icon">🏮</div>
-      <h1 id="modal-title">Đảo Đèn Lồng — Ba Hòn Đảo</h1>
+      <h1 id="modal-title">Đảo Đèn Lồng — Đèn Cạn Dầu</h1>
       <blockquote id="modal-quote" class="ong-dang-quote">
-        “Mây ơi, sương mực lại nuốt mất ánh đèn của ba hòn đảo rồi. Cháu hãy cầm chiếc đèn nhỏ trên vành nón, gom đom đóm thắp lại Đảo Bến, Đảo Cau và Đảo Chuông trước khi trời sáng nhé!” — <b>Ông Đăng</b>
+        “Mây ơi, gió đêm nay làm dầu trong đèn hao dần, lại thêm lũ Bóng Mực rình hút cạn những ngọn đèn yếu! Cháu hãy châm dầu và giữ cho ít nhất 60% số đèn trên đảo còn cháy sáng tới tận lúc bình minh nhé!” — <b>Ông Đăng</b>
       </blockquote>
       <p id="modal-desc">
         Chọn đêm trong chiến dịch 3 đêm hoặc bắt đầu từ <b>Đêm 1: Đảo Bến</b>.
@@ -117,15 +120,15 @@
       <div id="night-selector" class="night-selector">
         <button class="night-pill active" data-night="1">
           <span class="np-num">Đêm 1</span>
-          <span class="np-name">Đảo Bến (5 đèn · 300s)</span>
+          <span class="np-name">Đảo Bến (Cần 3/5 đèn · 240s)</span>
         </button>
         <button class="night-pill" data-night="2">
           <span class="np-num">Đêm 2</span>
-          <span class="np-name">Đảo Cau (6 đèn · 330s)</span>
+          <span class="np-name">Đảo Cau (Cần 4/6 đèn · 270s)</span>
         </button>
         <button class="night-pill" data-night="3">
           <span class="np-num">Đêm 3</span>
-          <span class="np-name">Đảo Chuông (7 đèn · 360s)</span>
+          <span class="np-name">Đảo Chuông (Cần 5/7 đèn · 300s)</span>
         </button>
       </div>
 
@@ -154,7 +157,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal (persisted in localStorage) -->
+  <!-- Settings Modal (persisted in localStorage, including Colorblind Mode) -->
   <div id="settings-overlay" class="overlay hidden">
     <div class="modal settings-modal">
       <div class="modal-icon">⚙</div>
@@ -166,6 +169,12 @@
       <div class="setting-row">
         <label for="slider-sens">Độ nhạy xoay camera chuột (<span id="lbl-sens">1.0x</span>)</label>
         <input id="slider-sens" type="range" min="0.3" max="2.5" step="0.1" value="1.0" />
+      </div>
+      <div class="setting-row checkbox-row">
+        <label class="cb-label" for="chk-colorblind">
+          <input id="chk-colorblind" type="checkbox" />
+          <span><b>Bảng màu dễ phân biệt (Chế độ mù màu)</b> — Đổi mắt/viền Bóng Mực sang <code>#00B3FF</code>, cảnh báo UI sang <code>#FFFFFF</code> kèm biểu tượng <code>⚠</code></span>
+        </label>
       </div>
       <div class="modal-actions">
         <button id="btn-close-settings" class="btn-primary">Lưu & Đóng</button>
