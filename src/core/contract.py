@@ -1,4 +1,4 @@
-"""Contract, inputs, and scenario loading with strict validation (Test Contract v1.1)."""
+"""Contract, inputs, and scenario loading with strict validation (Test Contract v1.2)."""
 from __future__ import annotations
 
 import json
@@ -15,7 +15,15 @@ REQUIRED_TUNING_KEYS = (
     "dash_duration_s",
     "dash_cooldown_s",
     "carry_capacity",
+    "capacity_max",
     "lantern_cost",
+    "relight_cost",
+    "fuel_max",
+    "fuel_decay_per_s",
+    "fuel_per_mote",
+    "low_fuel_threshold",
+    "drain_per_s",
+    "win_ratio",
     "lantern_count_night1",
     "pickup_radius",
     "interact_radius",
@@ -47,7 +55,7 @@ REQUIRED_SCORE_KEYS = (
 
 
 class ContractFormatError(ValueError):
-    """Raised when inputs, scenario, or contract files violate Test Contract v1.1."""
+    """Raised when inputs, scenario, or contract files violate Test Contract v1.2."""
 
 
 def _is_number(val: Any) -> bool:
@@ -145,7 +153,7 @@ def parse_inputs_file(path: Path | str) -> dict[int, dict[str, Any]]:
 
 
 def parse_scenario_file(path: Path | str) -> dict[str, Any]:
-    """Parse and validate --scenario JSON file (Contract v1.0 & v1.1)."""
+    """Parse and validate --scenario JSON file (Contract v1.0, v1.1 & v1.2)."""
     p = Path(path)
     if not p.is_file():
         raise ContractFormatError(f"Scenario file not found: {p}")
@@ -173,6 +181,7 @@ def parse_scenario_file(path: Path | str) -> dict[str, Any]:
             "dash_cd_ticks",
             "pulse_cd_ticks",
             "charm_ticks",
+            "successful_lights",
         ):
             if int_key in pl:
                 if not _is_nonneg_int(pl[int_key]):
@@ -240,6 +249,10 @@ def parse_scenario_file(path: Path | str) -> dict[str, Any]:
                 if not _is_nonneg_int(s["state_ticks_left"]):
                     raise ContractFormatError(f"scenario.shades[{idx}].state_ticks_left must be an int >= 0")
                 entry["state_ticks_left"] = int(s["state_ticks_left"])
+            if "target_lantern_id" in s and s["target_lantern_id"] is not None:
+                if not isinstance(s["target_lantern_id"], str) or not s["target_lantern_id"].strip():
+                    raise ContractFormatError(f"scenario.shades[{idx}].target_lantern_id must be a non-empty string")
+                entry["target_lantern_id"] = s["target_lantern_id"]
             shades.append(entry)
         out["shades"] = shades
 
@@ -319,6 +332,18 @@ def parse_scenario_file(path: Path | str) -> dict[str, Any]:
                 if not isinstance(lan["lit"], bool):
                     raise ContractFormatError(f"scenario.lanterns[{idx}].lit must be a boolean")
                 entry["lit"] = lan["lit"]
+            if "fuel" in lan:
+                if not _is_number(lan["fuel"]) or float(lan["fuel"]) < 0:
+                    raise ContractFormatError(f"scenario.lanterns[{idx}].fuel must be a number >= 0")
+                entry["fuel"] = float(lan["fuel"])
+            if "ever_lit" in lan:
+                if not isinstance(lan["ever_lit"], bool):
+                    raise ContractFormatError(f"scenario.lanterns[{idx}].ever_lit must be a boolean")
+                entry["ever_lit"] = lan["ever_lit"]
+            if "relit_count" in lan:
+                if not _is_nonneg_int(lan["relit_count"]):
+                    raise ContractFormatError(f"scenario.lanterns[{idx}].relit_count must be an integer >= 0")
+                entry["relit_count"] = int(lan["relit_count"])
             lanterns.append(entry)
         out["lanterns"] = lanterns
 
