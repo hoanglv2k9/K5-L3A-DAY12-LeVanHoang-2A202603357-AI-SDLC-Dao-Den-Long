@@ -1,6 +1,7 @@
 # Verification Proof — Phase 4 (Test Contract v1.3 · Release v1.0.0)
-- Timestamp (UTC): `2026-11-20T15:23:27.198055+00:00`
+- Timestamp (UTC): `2026-11-20T16:36:19.671147+00:00`
 - Python: `3.13.2`
+- Machine Specs: CPU `Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz` (`8` cores), RAM `15.9 GB`, GPU `Intel(R) UHD Graphics 620 / NVIDIA GeForce GTX 1050`, OS `Windows 11 (AMD64, 10.0.26200)`
 
 ## 1. Contract Check
 - `game.contract.json`: **PASS** (`contract_version=1.3`, `team=2A202603357-LeVanHoang`, `bench_cmd=python3 -m src.bench`, `soak_cmd=python3 -m src.soak`)
@@ -46,7 +47,7 @@ test_win_dawn_survived_scenario_full_flow (test_headless_cli.TestHeadlessCLI.tes
 [UPDATED v1.1 -> v1.2] Verifies lighting 3/5 lanterns and surviving until dawn yields dawn_survived. ... ok
 
 ----------------------------------------------------------------------
-Ran 29 tests in 8.548s
+Ran 29 tests in 9.977s
 
 OK
 ```
@@ -68,8 +69,15 @@ OK
 - Run 1 SHA-256 (`seed=2026, night=3, 600 ticks`): `298c2bccd627e17d3171a078cb35e027fbd320b9fb6cbaae8c30a5fee0940c97`
 - Run 2 SHA-256 (`seed=2026, night=3, 600 ticks`): `298c2bccd627e17d3171a078cb35e027fbd320b9fb6cbaae8c30a5fee0940c97`
 - Byte-for-byte match: **PASS**
-- 21,600-tick performance benchmark (`Night 3`): **`2.965s`** (budget `<= 30.0s`) — **PASS**
-- `bench.json` (`--seed 42 --duration 30`): `avg_fps=137.1` (`>=60`), `p1_low_fps=63.0` (`>=30`), `frame_ms_p95=8.86ms`, `load_ms=3ms` (`<=10000`), `peak_mem_mb=24.1MB` — **PASS**
+- 21,600-tick performance benchmark (`Night 3`): **`3.762s`** (budget `<= 30.0s`) — **PASS**
+- `bench.json` (`--seed 42 --duration 30`): `avg_fps=124.7` (`>=60`), `p1_low_fps=31.2` (`>=30`), `frame_ms_p95=11.0ms`, `load_ms=3ms` (`<=10000`), `peak_mem_mb=24.1MB` — **PASS**
 - `soak.json` (`--seed 7 --nights 10`): `crashes=0` (`=0`), `mem_start_mb=24.0MB`, `mem_end_mb=24.0MB` (`<= 1.2 * mem_start_mb`), `duration_s=12.59s` — **PASS**
 - Invalid inputs (`bad_inputs.json`) exit code: **`2`** (stderr: `Format error: frames[1].tick (10) must be strictly greater than previous tick (10)`)
-- Total verification elapsed: `14.35s`
+- Total verification elapsed: `17.25s`
+
+## 5. Visual Verification Screenshots (`docs/proof/phase-4/screenshots/`)
+- `screenshots/01_lobby_main.png` (`546035 bytes`)
+- `screenshots/02_leaderboard_top10.png` (`469177 bytes`)
+- `screenshots/03_settings_accessibility.png` (`483884 bytes`)
+- `screenshots/04_night1_gameplay_hud.png` (`305923 bytes`)
+- `screenshots/05_benchmark_1280x720.png` (`524519 bytes`)

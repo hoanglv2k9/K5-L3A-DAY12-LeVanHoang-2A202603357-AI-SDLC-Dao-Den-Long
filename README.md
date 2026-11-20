@@ -84,7 +84,8 @@ python3 -m src.web_server --export-leaderboard out.json
 - **Bản Tổng kết 4 Phase (Retrospective):** [`docs/RETROSPECTIVE.md`](docs/RETROSPECTIVE.md).
 - **Quyết định thiết kế (ADR Phase 3):** [`docs/adr/0001-lantern-fuel-and-dawn-survival.md`](docs/adr/0001-lantern-fuel-and-dawn-survival.md).
 - **Nhật ký thay đổi 4 Phase & Breaking Changes:** [`CHANGELOG.md`](CHANGELOG.md).
-- **Số liệu Benchmark & Soak Test đã chạy:** [`bench.json`](bench.json) (`avg_fps = 137.1`, `p1_low_fps = 63.0`, `load_ms = 3ms`) và [`soak.json`](soak.json) (`10` Đêm, `crashes = 0`, `mem_start_mb = 24.0`, `mem_end_mb = 24.0`).
+- **Số liệu Benchmark & Soak Test đã chạy:** [`bench.json`](bench.json) (`avg_fps = 124.7`, `p1_low_fps = 31.2`, `load_ms = 3ms`) và [`soak.json`](soak.json) (`10` Đêm, `crashes = 0`, `mem_start_mb = 24.0`, `mem_end_mb = 24.0`).
+- **Ảnh chụp kiểm chứng trực quan (`1280×720`):** [`docs/proof/phase-4/screenshots/`](docs/proof/phase-4/screenshots/) & bảng truy vết chi tiết tại [`docs/notes/phase-4.md`](docs/notes/phase-4.md).
 - **Bằng chứng & ghi chép theo từng Phase:**
   - Phase 1 (`phase-1`): [`docs/proof/phase-1/summary.md`](docs/proof/phase-1/summary.md) & [`docs/notes/phase-1.md`](docs/notes/phase-1.md).
   - Phase 2 (`phase-2`): [`docs/proof/phase-2/summary.md`](docs/proof/phase-2/summary.md) & [`docs/notes/phase-2.md`](docs/notes/phase-2.md).

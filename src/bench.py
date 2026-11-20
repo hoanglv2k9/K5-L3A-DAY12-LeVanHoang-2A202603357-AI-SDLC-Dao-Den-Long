@@ -16,7 +16,7 @@ from typing import Any
 
 from src.core.contract import load_contract
 from src.core.engine import GameEngine, Mote, Shade, round3
-from src.core.memory import get_rss_and_peak_mb
+from src.core.memory import get_machine_specs, get_rss_and_peak_mb
 from src.core.rng import SeededRNG
 
 WINDOW_WIDTH = 1280
@@ -202,6 +202,7 @@ def compute_benchmark_metrics(
         "vsync_off": True,
         "renderer": "Three.js r149 WebGL (1280x720) + Python 3.13 Deterministic Scene Pipeline",
         "os": f"{platform.system()} {platform.release()} ({platform.machine()})",
+        "machine": get_machine_specs(),
     }
 
 

@@ -90,3 +90,87 @@ def get_rss_and_peak_mb() -> tuple[float, float]:
     cur, peak = tracemalloc.get_traced_memory()
     base_mb = 24.0
     return round(base_mb + cur / (1024.0 * 1024.0), 2), round(base_mb + peak / (1024.0 * 1024.0), 2)
+
+
+def get_machine_specs() -> dict[str, str | int | float]:
+    """Return cross-platform host machine hardware & OS specs using Python stdlib."""
+    import platform
+
+    cpu = platform.processor() or platform.machine() or "unknown"
+    ram_gb: float | None = None
+    gpus: list[str] = []
+
+    if sys.platform == "win32":
+        try:
+            import winreg
+
+            with winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+            ) as key:
+                cpu_name, _ = winreg.QueryValueEx(key, "ProcessorNameString")
+                if cpu_name:
+                    cpu = str(cpu_name).strip()
+        except Exception:
+            pass
+
+        try:
+            import winreg
+
+            disp_class = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, disp_class) as cls_key:
+                idx = 0
+                while idx < 16:
+                    try:
+                        sub_name = winreg.EnumKey(cls_key, idx)
+                        idx += 1
+                    except OSError:
+                        break
+                    try:
+                        with winreg.OpenKey(cls_key, sub_name) as sub_key:
+                            desc, _ = winreg.QueryValueEx(sub_key, "DriverDesc")
+                            if desc and str(desc).strip() not in gpus:
+                                gpus.append(str(desc).strip())
+                    except OSError:
+                        continue
+        except Exception:
+            pass
+
+        try:
+            class _MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", ctypes.wintypes.DWORD),
+                    ("dwMemoryLoad", ctypes.wintypes.DWORD),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                ]
+
+            ms = _MEMORYSTATUSEX()
+            ms.dwLength = ctypes.sizeof(_MEMORYSTATUSEX)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(ms)):
+                ram_gb = round(ms.ullTotalPhys / (1024.0 ** 3), 1)
+        except Exception:
+            pass
+    else:
+        try:
+            if hasattr(os, "sysconf"):
+                pages = os.sysconf("SC_PHYS_PAGES")
+                page_size = os.sysconf("SC_PAGE_SIZE")
+                if pages > 0 and page_size > 0:
+                    ram_gb = round((pages * page_size) / (1024.0 ** 3), 1)
+        except Exception:
+            pass
+
+    return {
+        "cpu": cpu,
+        "logical_cores": os.cpu_count() or 0,
+        "ram_gb": ram_gb if ram_gb is not None else "unknown",
+        "gpu": " / ".join(gpus) if gpus else "N/A",
+        "os": f"{platform.system()} {platform.release()} ({platform.machine()}, {platform.version()})",
+        "python": platform.python_version(),
+    }

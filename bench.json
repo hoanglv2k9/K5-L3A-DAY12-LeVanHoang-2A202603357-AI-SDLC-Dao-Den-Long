@@ -1,12 +1,20 @@
 {
   "contract_version": "1.3",
-  "avg_fps": 137.1,
-  "p1_low_fps": 63.0,
-  "frame_ms_p95": 8.86,
-  "frames": 4114,
+  "avg_fps": 124.7,
+  "p1_low_fps": 31.2,
+  "frame_ms_p95": 11.0,
+  "frames": 3742,
   "load_ms": 3,
   "peak_mem_mb": 24.1,
   "vsync_off": true,
   "renderer": "Three.js r149 WebGL (1280x720) + Python 3.13 Deterministic Scene Pipeline",
-  "os": "Windows 11 (AMD64)"
+  "os": "Windows 11 (AMD64)",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "logical_cores": 8,
+    "ram_gb": 15.9,
+    "gpu": "Intel(R) UHD Graphics 620 / NVIDIA GeForce GTX 1050",
+    "os": "Windows 11 (AMD64, 10.0.26200)",
+    "python": "3.13.2"
+  }
 }

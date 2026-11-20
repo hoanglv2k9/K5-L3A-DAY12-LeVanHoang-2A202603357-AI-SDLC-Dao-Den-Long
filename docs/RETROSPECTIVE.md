@@ -12,7 +12,7 @@
 | **Phase 1** | `phase-1` (`v1.0`) | MVP Đêm 1 (**Đảo Bến**), lõi mô phỏng 60 tick/s tất định, CLI `--headless`, bản 3D Three.js | `17 / 17` PASS | 5 kịch bản CLI (`win`, `pulse_stun`, `safe_zone`, `loss_flames`, `loss_dawn`), SHA-256 trùng khớp 100% | `4.68s` |
 | **Phase 2** | `phase-2` (`v1.1`) | Mở rộng **Ba hòn đảo** (Đêm 1, 2, 3), 12 bước tick, Lướt (`dash`), Tạm dừng (`pause`), Rơi (`Y<-10`), Gió Lạc, Bùa Gió, Gió Mạnh, HUD 10 ô | `22 / 22` PASS | 7 kịch bản CLI đủ 3 Đêm, benchmark `21.600 tick` trong **`1.243s`** (`<= 30s`) | `6.48s` |
 | **Phase 3** | `phase-3` (`v1.2`) | Change Request **"Đèn cạn dầu"**: nhiên liệu nguyên `1/60`, `refuel`, `relight (5)`, `lantern_out`, Bóng Mực `drain`, thắng `dawn_survived`, `capacity 10..20`, Chế độ mù màu, ADR 0001 | `24 / 24` PASS | 8 kịch bản CLI, benchmark `21.600 tick` trong **`2.886s`** (`<= 30s`) | `9.11s` |
-| **Phase 4** | `phase-4` & `v1.0.0` (`v1.3`) | Sản phẩm phát hành: Benchmark 1280×720 (`200` Bóng Mực, `100` đom đóm), Soak Test 10 Đêm liên tiếp, Bảng xếp hạng cục bộ, Đổi phím & Phụ đề & Giảm chuyển động & Cỡ chữ `>= 18px` | `29 / 29` PASS | `bench.json`: **`avg_fps = 137.1`**, **`p1_low_fps = 63.0`**, `load_ms = 3ms`; `soak.json`: **`10 Đêm, 0 crash`**, `mem_end_mb = 24.0MB <= 1.2 * mem_start_mb` | `~11.8s` |
+| **Phase 4** | `phase-4` & `v1.0.0` (`v1.3`) | Sản phẩm phát hành: Benchmark 1280×720 (`200` Bóng Mực, `100` đom đóm), Soak Test 10 Đêm liên tiếp, Bảng xếp hạng cục bộ, Đổi phím & Phụ đề & Giảm chuyển động & Cỡ chữ `>= 18px` | `29 / 29` PASS | `bench.json`: **`avg_fps = 124.7`**, **`p1_low_fps = 31.2`**, `load_ms = 3ms`; `soak.json`: **`10 Đêm, 0 crash`**, `mem_end_mb = 24.0MB <= 1.2 * mem_start_mb` | `~16.8s` |
 
 ---
 

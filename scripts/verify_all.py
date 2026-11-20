@@ -20,6 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.core.contract import load_contract
+from src.core.memory import get_machine_specs
 
 SCENARIOS_DIR = REPO_ROOT / "tests" / "scenarios"
 
@@ -41,10 +42,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     t0 = time.perf_counter()
+    specs = get_machine_specs()
     report_lines: list[str] = [
         f"# Verification Proof — Phase {args.phase} (Test Contract v1.3 · Release v1.0.0)",
         f"- Timestamp (UTC): `{datetime.now(timezone.utc).isoformat()}`",
-        f"- Python: `{sys.version.split()[0]}`",
+        f"- Python: `{specs['python']}`",
+        f"- Machine Specs: CPU `{specs['cpu']}` (`{specs['logical_cores']}` cores), RAM `{specs['ram_gb']} GB`, GPU `{specs['gpu']}`, OS `{specs['os']}`",
         "",
     ]
 
@@ -203,6 +206,14 @@ def main(argv: list[str] | None = None) -> int:
             )
         report_lines.append(f"- Invalid inputs (`bad_inputs.json`) exit code: **`{bad_cp.returncode}`** (stderr: `{bad_cp.stderr.strip()}`)")
         report_lines.append(f"- Total verification elapsed: `{elapsed}s`")
+
+        shots_dir = proof_dir / "screenshots"
+        if shots_dir.is_dir():
+            pngs = sorted(shots_dir.glob("*.png"))
+            if pngs:
+                report_lines.append(f"\n## 5. Visual Verification Screenshots (`docs/proof/phase-{args.phase}/screenshots/`)")
+                for p in pngs:
+                    report_lines.append(f"- `screenshots/{p.name}` (`{p.stat().st_size} bytes`)")
 
         if not args.no_write_proof:
             (proof_dir / "summary.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")

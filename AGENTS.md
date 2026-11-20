@@ -1,13 +1,13 @@
-# AGENTS.md — Quy tắc dành cho AI Agent (Đảo Đèn Lồng · Contract v1.2)
+# AGENTS.md — Quy tắc dành cho AI Agent (Đảo Đèn Lồng · Contract v1.3)
 
 Tệp này định nghĩa các bất biến kỹ thuật mà mọi AI agent bắt buộc tuân thủ khi sửa đổi kho mã này.
 
 ## 1. Kiến trúc & Single Source of Truth
-- **`game.contract.json`** (`contract_version: "1.2"`) là nguồn sự thật duy nhất (Single Source of Truth) cho toàn bộ thông số tuning (`player_speed`, `dash_speed`, `dash_duration_s`, `dash_cooldown_s`, `carry_capacity`, `capacity_max`, `lantern_cost`, `relight_cost`, `fuel_max`, `fuel_decay_per_s`, `fuel_per_mote`, `low_fuel_threshold`, `drain_per_s`, `win_ratio`, `pickup_radius`, `interact_radius`, `pulse_cost`, `pulse_radius`, `night1_duration_s`, `night2_duration_s`, `night3_duration_s`, `flames`, `invuln_s`, `hit_drop_ratio`, `pulse_stun_s`, `pulse_push_m`, `pulse_cooldown_s`, `safe_radius`, `shade_speed`, `shade_hit_radius`, `fall_enabled`, `score`).
+- **`game.contract.json`** (`contract_version: "1.3"`) là nguồn sự thật duy nhất (Single Source of Truth) cho toàn bộ thông số tuning (`player_speed`, `dash_speed`, `dash_duration_s`, `dash_cooldown_s`, `carry_capacity`, `capacity_max`, `lantern_cost`, `relight_cost`, `fuel_max`, `fuel_decay_per_s`, `fuel_per_mote`, `low_fuel_threshold`, `drain_per_s`, `win_ratio`, `pickup_radius`, `interact_radius`, `pulse_cost`, `pulse_radius`, `night1_duration_s`, `night2_duration_s`, `night3_duration_s`, `flames`, `invuln_s`, `hit_drop_ratio`, `pulse_stun_s`, `pulse_push_m`, `pulse_cooldown_s`, `safe_radius`, `shade_speed`, `shade_hit_radius`, `fall_enabled`, `score`) và các lệnh chuẩn (`headless_cmd`, `bench_cmd`, `soak_cmd`, `run_cmd`).
 - **Cấm tuyệt đối** hardcode các con số tuning này trong `src/` hoặc `web/` khác với `game.contract.json`.
 - Lõi mô phỏng nằm trong `src/core/` (Python 3 stdlib thuần, không phụ thuộc WebGL/DOM).
 
-## 2. Hợp đồng Kiểm thử Tự động (Test Contract v1.2)
+## 2. Hợp đồng Kiểm thử Tự động (Test Contract v1.3)
 - Nhịp mô phỏng cố định: **60 tick = 1 giây** (`dt = 1/60 s`).
 - Lệnh CLI bắt buộc hoạt động trên macOS, Linux, Windows (`--night 1|2|3`):
   ```bash
