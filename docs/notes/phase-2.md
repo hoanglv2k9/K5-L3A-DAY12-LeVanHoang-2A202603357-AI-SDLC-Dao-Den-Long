@@ -49,6 +49,9 @@ Ticket-02 chuẩn hóa toàn bộ thông số và mở rộng game lên 3 Đêm.
 2. **Thứ tự va chạm trong Bước 9 (Gió Lạc cướp trước, Bóng Mực đánh sau):**
    - *Vấn đề:* Nếu Bóng Mực đánh rơi `floor(carried/2)` trước khi Gió Lạc cướp trong cùng 1 tick thì số đom đóm bị cướp sẽ sai lệch.
    - *Khắc phục:* Tuân thủ đúng thứ tự 12 bước của Ticket-02 Phần 1: duyệt `drifters` theo `id` tăng dần trước để xử lý `drifter_steal`, sau đó mới duyệt `shades` theo `id` tăng dần để xử lý `player_hit` (tối đa mất 1 Ngọn lửa mỗi tick).
+3. **Ngược hướng trái/phải (`A/D` và `ArrowLeft/ArrowRight`) trong camera 3D (`web/game.js`):**
+   - *Vấn đề:* Trong hệ tọa độ bàn tay phải của Three.js, khi camera đặt ở `-Z` nhìn về hướng `+Z` (`Forward = (0, 0, +1)`, `Up = (0, +1, 0)`), tích có hướng `Forward × Up = (-1, 0, 0)` khiến trục `+X` nằm bên **trái** màn hình và `-X` nằm bên **phải** màn hình. Do đó gán `D -> mx = +1` làm nhân vật đi sang trái màn hình.
+   - *Khắc phục:* Đảo ánh xạ phím ngang trong `web/game.js` (`A / ArrowLeft -> mx += 1`, `D / ArrowRight -> mx -= 1`) để khớp đúng hướng nhìn thực tế của camera 3D ở mọi góc `camYawDeg`, đồng thời giữ nguyên công thức `wx, wz` chuẩn trong `src/core/engine.py`.
 
 ### 3.3. Ước tính Token & Chi phí Phase 2
 | Hạng mục | Số lượt prompt / tool call | Token Input (ước tính) | Token Output (ước tính) | Ghi chú |

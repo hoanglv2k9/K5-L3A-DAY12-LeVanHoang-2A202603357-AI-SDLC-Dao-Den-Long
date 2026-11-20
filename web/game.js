@@ -1097,9 +1097,11 @@
     if (keys["BracketLeft"]) camYawDeg = (camYawDeg - 95 * DT) % 360;
     if (keys["BracketRight"]) camYawDeg = (camYawDeg + 95 * DT) % 360;
 
+    // In Three.js right-handed coordinates with camera looking along +Z at yaw=0,
+    // screen-left is +X (mx = +1) and screen-right is -X (mx = -1)
     let mx = 0, mz = 0;
-    if (keys["KeyD"] || keys["ArrowRight"]) mx += 1;
-    if (keys["KeyA"] || keys["ArrowLeft"]) mx -= 1;
+    if (keys["KeyA"] || keys["ArrowLeft"]) mx += 1;
+    if (keys["KeyD"] || keys["ArrowRight"]) mx -= 1;
     if (keys["KeyW"] || keys["ArrowUp"]) mz += 1;
     if (keys["KeyS"] || keys["ArrowDown"]) mz -= 1;
 
