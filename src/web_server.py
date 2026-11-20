@@ -101,7 +101,14 @@ class GameHandler(BaseHTTPRequestHandler):
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run Đảo Đèn Lồng 3D Web Server or Export Leaderboard")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+    parser = argparse.ArgumentParser(description="Run Dao Den Long 3D Web Server or Export Leaderboard")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8080, help="Bind port (default: 8080)")
     parser.add_argument("--no-open", action="store_true", help="Do not auto-open browser")
@@ -119,8 +126,11 @@ def main(argv: list[str] | None = None) -> int:
 
     server = ThreadingHTTPServer((args.host, args.port), GameHandler)
     url = f"http://{args.host}:{args.port}"
-    print(f"Đảo Đèn Lồng 3D đang chạy tại: {url}", flush=True)
-    print("Nhấn Ctrl+C để dừng server.", flush=True)
+    try:
+        print(f"Dao Den Long 3D server running at: {url}", flush=True)
+        print("Press Ctrl+C to stop server.", flush=True)
+    except UnicodeEncodeError:
+        print(f"Server URL: {url}", flush=True)
     if not args.no_open:
         try:
             webbrowser.open(url)
