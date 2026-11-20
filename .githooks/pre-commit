@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Pre-commit harness hook: blocks committing if tests or Test Contract verification fail.
+# Enable with: git config core.hooksPath .githooks
+set -e
+if command -v python3 >/dev/null 2>&1; then
+  PY=python3
+else
+  PY=python
+fi
+echo "[harness hook] Running verification gate before commit..."
+"$PY" scripts/verify_all.py --no-write-proof
